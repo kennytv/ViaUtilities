@@ -1,3 +1,5 @@
 generated/
 logs/
 server.jar
+mapping-*.json
+versions.txt
