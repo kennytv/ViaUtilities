@@ -49,7 +49,9 @@ def downloadMappings(oldVersion, version, url):
     subprocess.call(["java", "-jar", "MappingsGenerator-1.0.jar", version])
 
     print("\n=== Generating Burger mapping diff...\n", flush=True)
-    os.system("cd " + burgerDir + " && .\\update.sh " + oldVersion + " " + version)
+    os.system("cd " + burgerDir +
+              " && .\\update.sh " + oldVersion + " " + version +
+              " && .\\vitrine\\" + oldVersion + "_" + version + ".html")
 
     print("\nFinished", version, "processing!", flush=True)
 
@@ -68,7 +70,7 @@ def check():
     while True:
         print("Checking.")
 
-        # raw = 
+        # raw =
         # jsonObject = json.load(raw)
         jsonObject = loadJson("https://launchermeta.mojang.com/mc/game/version_manifest.json")
 
