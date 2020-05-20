@@ -37,7 +37,7 @@ def downloadMappings(oldVersion, version, url):
 
     clientFile = burgerDir + "versions\\" + version + ".jar"
     if os.path.isfile(clientFile):
-        print("Client file already present!")
+        print("Client file already present!", flush=True)
     else:
         print("=== Downloading client...", flush=True)
         wget.download(clientUrl, clientFile)
@@ -68,7 +68,7 @@ def check():
         oldSnapshot = ""
 
     while True:
-        print("Checking.")
+        print("Checking.", flush=True)
 
         # raw =
         # jsonObject = json.load(raw)
@@ -79,14 +79,14 @@ def check():
         latestSnapshot = latest["snapshot"]
 
         if oldRelease != latestRelease:
-            print("A new release has been published:", latestRelease)
+            print("A new release has been published:", latestRelease, flush=True)
             old = oldRelease
             new = latestRelease
             oldRelease = latestRelease
 
             saveToFile(latestRelease, oldSnapshot)
         elif oldSnapshot != latestSnapshot:
-            print("A new snapshot has been published:", latestSnapshot)
+            print("A new snapshot has been published:", latestSnapshot, flush=True)
             old = oldSnapshot
             new = latestSnapshot
             oldSnapshot = latestSnapshot
@@ -103,12 +103,11 @@ def check():
                 break
 
         if versionData is None:
-            print("VERSION DATA FOR", new, "NOT FOUND!")
-            time.sleep(20)
-            continue
+            print("VERSION DATA FOR", new, "NOT FOUND!", flush=True)
+        else:
+            downloadMappings(old, new, versionData["url"])
 
-        downloadMappings(old, new, versionData["url"])
-        time.sleep(60 * 15)
+        time.sleep(20)
 
 
 delete("server.jar")
