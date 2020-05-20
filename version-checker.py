@@ -67,8 +67,10 @@ def check():
         oldRelease = ""
         oldSnapshot = ""
 
+    attempt = 0
     while True:
-        print("Checking.", flush=True)
+        attempt += 1
+        print("Checking #" + str(attempt) + ".", flush=True)
 
         # raw =
         # jsonObject = json.load(raw)
