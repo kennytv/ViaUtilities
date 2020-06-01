@@ -70,7 +70,7 @@ def check():
     attempt = 0
     while True:
         attempt += 1
-        print("Checking #" + str(attempt) + ".", flush=True)
+        print("Checking #" + str(attempt), flush=True)
 
         # raw =
         # jsonObject = json.load(raw)
@@ -109,7 +109,9 @@ def check():
         else:
             downloadMappings(old, new, versionData["url"])
 
-        time.sleep(20)
+        print("Resetting attempt count, resuming search in 3 minutes", flush=True)
+        attempt = 0
+        time.sleep(180)
 
 
 delete("server.jar")
