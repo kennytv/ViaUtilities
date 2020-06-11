@@ -9,12 +9,17 @@ public final class Main {
     private static final String[] ARGS = {"--reports"};
 
     public static void main(final String[] args) throws Exception {
-        final String version = args[0];
+        if (args.length != 2) {
+            throw new IllegalArgumentException("Required args: path to server jar, version");
+        }
+
+        final String serverPath = args[0];
+        final String version = args[1];
         MappingsGenerator.cleanup();
 
         System.out.println("Loading net.minecraft.data.Main class...");
         final ClassLoader loader = URLClassLoader.newInstance(
-                new URL[]{new File("server.jar").toURI().toURL()},
+                new URL[]{new File(serverPath).toURI().toURL()},
                 Main.class.getClassLoader()
         );
 

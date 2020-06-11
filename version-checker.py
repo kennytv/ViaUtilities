@@ -4,8 +4,16 @@ import json
 import wget
 import subprocess
 import os
+import sys
 
-burgerDir = "C:\\Users\\Nassim\\Desktop\\Burger\\"
+enigmaPath = "enigma-cli.jar"
+
+
+def hasArg(arg):
+    for argv in sys.argv:
+        if argv == arg:
+            return True
+    return False
 
 
 def loadJson(url):
@@ -35,23 +43,42 @@ def downloadMappings(oldVersion, version, url):
     clientUrl = jsonObject["downloads"]["client"]["url"]
     serverUrl = jsonObject["downloads"]["server"]["url"]
 
-    clientFile = burgerDir + "versions\\" + version + ".jar"
+    clientFile = "versions/client-" + version + ".jar"
     if os.path.isfile(clientFile):
-        print("Client file already present!", flush=True)
-    else:
         print("=== Downloading client...", flush=True)
         wget.download(clientUrl, clientFile)
+    else:
+        print("Client file already found!")
 
-    print("\n=== Downloading server...", flush=True)
-    wget.download(serverUrl, "server.jar")
+    serverFile = "versions/server-" + version + ".jar"
+    if os.path.isfile(clientFile):
+        print("\n=== Downloading server...", flush=True)
+        wget.download(serverUrl, serverFile)
+    else:
+        print("Server file already found!")
 
     print("\n=== Starting server mapping generator...\n", flush=True)
-    subprocess.call(["java", "-jar", "MappingsGenerator-1.0.jar", version])
+    subprocess.call(["java", "-jar", "MappingsGenerator-1.0.jar", "versions/server-" + version + ".jar", version])
 
     print("\n=== Generating Burger mapping diff...\n", flush=True)
-    os.system("cd " + burgerDir +
-              " && .\\update.sh " + oldVersion + " " + version +
-              " && .\\vitrine\\" + oldVersion + "_" + version + ".html")
+    os.system(".\\update.sh " + oldVersion + " " + version +
+              " && .\\Burger\\vitrine\\" + oldVersion + "_" + version + ".html")
+
+    if hasArg("--generateSources"):
+        print("\n=== Generating sources with Enigma...\n", flush=True)
+        clientMappingsUrl = jsonObject["downloads"]["client_mappings"]["url"]
+        serverMappingsUrl = jsonObject["downloads"]["server_mappings"]["url"]
+        proguardMappingsPath = "sources/" + version + ".txt"
+
+        # Client sources
+        wget.download(clientMappingsUrl, proguardMappingsPath)
+        os.system(".\\generate-sources.sh " + version + " " + enigmaPath)
+        delete(proguardMappingsPath)
+
+        # Server sources
+        wget.download(serverMappingsUrl, proguardMappingsPath)
+        os.system(".\\generate-sources.sh " + version + " " + enigmaPath)
+        delete(proguardMappingsPath)
 
     print("\nFinished", version, "processing!", flush=True)
 
@@ -72,8 +99,6 @@ def check():
         attempt += 1
         print("Checking #" + str(attempt), flush=True)
 
-        # raw =
-        # jsonObject = json.load(raw)
         jsonObject = loadJson("https://launchermeta.mojang.com/mc/game/version_manifest.json")
 
         latest = jsonObject["latest"]
@@ -109,10 +134,9 @@ def check():
         else:
             downloadMappings(old, new, versionData["url"])
 
-        print("Resetting attempt count, resuming search in 3 minutes", flush=True)
+        print("Resetting attempt count, resuming search in 5 minutes", flush=True)
         attempt = 0
-        time.sleep(180)
+        time.sleep(300)
 
 
-delete("server.jar")
 check()
