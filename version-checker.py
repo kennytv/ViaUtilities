@@ -5,8 +5,7 @@ import wget
 import subprocess
 import os
 import sys
-
-enigmaPath = "enigma-cli.jar"
+import shutil
 
 
 def hasArg(arg):
@@ -43,42 +42,45 @@ def downloadMappings(oldVersion, version, url):
     clientUrl = jsonObject["downloads"]["client"]["url"]
     serverUrl = jsonObject["downloads"]["server"]["url"]
 
+    if not os.path.isdir("versions"):
+        os.mkdir("versions")
+
     clientFile = "versions/client-" + version + ".jar"
     if os.path.isfile(clientFile):
+        print("Client file already found!")
+    else:
         print("=== Downloading client...", flush=True)
         wget.download(clientUrl, clientFile)
-    else:
-        print("Client file already found!")
 
     serverFile = "versions/server-" + version + ".jar"
-    if os.path.isfile(clientFile):
+    if os.path.isfile(serverFile):
+        print("Server file already found!")
+    else:
         print("\n=== Downloading server...", flush=True)
         wget.download(serverUrl, serverFile)
-    else:
-        print("Server file already found!")
 
     print("\n=== Starting server mapping generator...\n", flush=True)
     subprocess.call(["java", "-jar", "MappingsGenerator-1.0.jar", "versions/server-" + version + ".jar", version])
+    shutil.rmtree('logs')
 
     print("\n=== Generating Burger mapping diff...\n", flush=True)
-    os.system(".\\update.sh " + oldVersion + " " + version +
+    os.system(".\\burger.sh " + oldVersion + " " + version +
               " && .\\Burger\\vitrine\\" + oldVersion + "_" + version + ".html")
 
     if hasArg("--generateSources"):
         print("\n=== Generating sources with Enigma...\n", flush=True)
         clientMappingsUrl = jsonObject["downloads"]["client_mappings"]["url"]
         serverMappingsUrl = jsonObject["downloads"]["server_mappings"]["url"]
-        proguardMappingsPath = "sources/" + version + ".txt"
+        if not os.path.isdir("sources"):
+            os.mkdir("sources")
 
-        # Client sources
-        wget.download(clientMappingsUrl, proguardMappingsPath)
-        os.system(".\\generate-sources.sh " + version + " " + enigmaPath)
-        delete(proguardMappingsPath)
+        print("\nGenerating client sources...\n", flush=True)
+        wget.download(clientMappingsUrl, "sources/client-" + version + ".txt")
+        os.system(".\\generate-sources.sh client " + version)
 
-        # Server sources
-        wget.download(serverMappingsUrl, proguardMappingsPath)
-        os.system(".\\generate-sources.sh " + version + " " + enigmaPath)
-        delete(proguardMappingsPath)
+        print("\nGenerating server sources...\n", flush=True)
+        wget.download(serverMappingsUrl, "sources/server-" + version + ".txt")
+        os.system(".\\generate-sources.sh server " + version)
 
     print("\nFinished", version, "processing!", flush=True)
 

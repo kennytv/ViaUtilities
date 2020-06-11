@@ -1,5 +1,6 @@
 # Created by .ignore support plugin (hsz.mobi)
 MappingsGenerator/.idea/
+MappingsGenerator/target/
 fabric.properties
 dependency-reduced-pom.xml
 *.jar
@@ -20,6 +21,8 @@ Burger/
 yarn/
 
 generated/
+mappings/
+sources/
 logs/
 versions/
 versions.txt
