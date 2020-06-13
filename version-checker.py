@@ -6,13 +6,26 @@ import subprocess
 import os
 import sys
 import shutil
+from lib import zips
 
 
 def hasArg(arg):
+    arg = "--" + arg
     for argv in sys.argv:
         if argv == arg:
             return True
     return False
+
+
+def getArg(arg):
+    counter = 0
+    arg = "--" + arg
+    for argv in sys.argv:
+        counter += 1
+        if argv != arg: continue
+        if len(sys.argv) != counter:
+            return sys.argv[counter]
+    return None
 
 
 def loadJson(url):
@@ -78,8 +91,14 @@ def downloadMappings(oldVersion, version, url):
         os.system(".\\burger.sh " + oldVersion + " " + version +
                   " && .\\" + vitrineFile)
 
+    # Minimize client/server jar
+    if not hasArg("noMinimize"):
+        print("\nMinimizing client/server jar file...", flush=True)
+        zips.delete_from_zip_file(clientFile, "^(assets|META-INF)\/")
+        zips.delete_from_zip_file(serverFile, "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple)\/")
+
     # Sources export
-    if hasArg("--generateSources"):
+    if hasArg("generateSources"):
         print("\n=== Generating sources with Enigma...\n", flush=True)
         clientMappingsUrl = jsonObject["downloads"]["client_mappings"]["url"]
         serverMappingsUrl = jsonObject["downloads"]["server_mappings"]["url"]
@@ -153,4 +172,14 @@ def check():
         time.sleep(300)
 
 
-check()
+ver = getArg("ver")
+if ver is None:
+    # Start check task
+    check()
+else:
+    # Generate for a single given version
+    print("Generating data for " + ver)
+    for entry in loadJson("https://launchermeta.mojang.com/mc/game/version_manifest.json")["versions"]:
+        if entry["id"] == ver:
+            downloadMappings(ver, ver, entry["url"])
+            break

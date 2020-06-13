@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 MappingsGenerator/.idea/
 MappingsGenerator/target/
+.idea/
 fabric.properties
 dependency-reduced-pom.xml
 *.jar
@@ -16,6 +17,10 @@ dependency-reduced-pom.xml
 *.rar
 *.iml
 hs_err_pid*
+
+__pycache__/
+*.py[cod]
+*$py.class
 
 Burger/
 yarn/
