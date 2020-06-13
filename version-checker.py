@@ -45,28 +45,40 @@ def downloadMappings(oldVersion, version, url):
     if not os.path.isdir("versions"):
         os.mkdir("versions")
 
+    # Client download
     clientFile = "versions/client-" + version + ".jar"
     if os.path.isfile(clientFile):
-        print("Client file already found!")
+        print("Client file already present!")
     else:
         print("=== Downloading client...", flush=True)
         wget.download(clientUrl, clientFile)
 
+    # Server download
     serverFile = "versions/server-" + version + ".jar"
     if os.path.isfile(serverFile):
-        print("Server file already found!")
+        print("Server file already present!")
     else:
         print("\n=== Downloading server...", flush=True)
         wget.download(serverUrl, serverFile)
 
-    print("\n=== Starting server mapping generator...\n", flush=True)
-    subprocess.call(["java", "-jar", "MappingsGenerator-1.0.jar", "versions/server-" + version + ".jar", version])
-    shutil.rmtree('logs')
+    # Via mapping
+    if os.path.isfile("mappings/mapping-" + version + ".json"):
+        print("Via mapping file already present!")
+    else:
+        print("\n=== Starting server mapping generator...\n", flush=True)
+        subprocess.call(["java", "-jar", "MappingsGenerator-1.0.jar", "versions/server-" + version + ".jar", version])
+        shutil.rmtree('logs')
 
-    print("\n=== Generating Burger mapping diff...\n", flush=True)
-    os.system(".\\burger.sh " + oldVersion + " " + version +
-              " && .\\Burger\\vitrine\\" + oldVersion + "_" + version + ".html")
+    # Burger
+    vitrineFile = "Burger\\vitrine\\" + oldVersion + "_" + version + ".html"
+    if os.path.isfile(vitrineFile):
+        print("Burger/Vitrine file already present!")
+    else:
+        print("\n=== Generating Burger mapping diff...\n", flush=True)
+        os.system(".\\burger.sh " + oldVersion + " " + version +
+                  " && .\\" + vitrineFile)
 
+    # Sources export
     if hasArg("--generateSources"):
         print("\n=== Generating sources with Enigma...\n", flush=True)
         clientMappingsUrl = jsonObject["downloads"]["client_mappings"]["url"]

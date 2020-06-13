@@ -19,4 +19,4 @@ java -cp $enigma cuchaz.enigma.command.Main decompile PROCYON versions/$platform
 
 # Cleanup
 rm -r sources/$platform-$v-mapping
-#rm sources/$platform-$v.txt
+rm sources/$platform-$v.txt
