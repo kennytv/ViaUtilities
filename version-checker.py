@@ -108,10 +108,11 @@ def downloadMappings(oldVersion, version, url):
         print("\nGenerating client sources...\n", flush=True)
         wget.download(clientMappingsUrl, "sources/client-" + version + ".txt")
         os.system(".\\generate-sources.sh client " + version)
-
-        print("\nGenerating server sources...\n", flush=True)
-        wget.download(serverMappingsUrl, "sources/server-" + version + ".txt")
-        os.system(".\\generate-sources.sh server " + version)
+		
+		# Server be broke for Enigma
+        #print("\nGenerating server sources...\n", flush=True)
+        #wget.download(serverMappingsUrl, "sources/server-" + version + ".txt")
+        #os.system(".\\generate-sources.sh server " + version)
 
     print("\nFinished", version, "processing!", flush=True)
 
