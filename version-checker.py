@@ -88,8 +88,9 @@ def downloadMappings(oldVersion, version, url):
         print("Burger/Vitrine file already present!")
     else:
         print("\n=== Generating Burger mapping diff...\n", flush=True)
-        os.system(".\\burger.sh " + oldVersion + " " + version +
-                  " && .\\" + vitrineFile)
+        print("Command: .\\burger.sh " + oldVersion + " " + version, flush=True)
+        os.system(".\\burger.sh " + oldVersion + " " + version)
+        os.system(".\\" + vitrineFile)
 
     # Minimize client/server jar
     if not hasArg("noMinimize"):
@@ -108,11 +109,11 @@ def downloadMappings(oldVersion, version, url):
         print("\nGenerating client sources...\n", flush=True)
         wget.download(clientMappingsUrl, "sources/client-" + version + ".txt")
         os.system(".\\generate-sources.sh client " + version)
-		
-		# Server be broke for Enigma
-        #print("\nGenerating server sources...\n", flush=True)
-        #wget.download(serverMappingsUrl, "sources/server-" + version + ".txt")
-        #os.system(".\\generate-sources.sh server " + version)
+
+        # Server be broke for Enigma
+        # print("\nGenerating server sources...\n", flush=True)
+        # wget.download(serverMappingsUrl, "sources/server-" + version + ".txt")
+        # os.system(".\\generate-sources.sh server " + version)
 
     print("\nFinished", version, "processing!", flush=True)
 
