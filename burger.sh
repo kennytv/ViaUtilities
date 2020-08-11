@@ -1,6 +1,16 @@
 #! /bin/bash
 # Originally written by the bootiful Gerrygames
 
+#  Hack time
+if [ ! -z "$3" -a "$3" == "vitrine" ]
+then
+	echo "Generating HTML file"
+	cd Burger
+	cat out/$1_$2.json | py vitrine/vitrine_main.py -v -o vitrine/$1_$2.html
+	exit 0
+fi
+
+# Normal execution
 burger_branch=1.16-dev
 
 if [ ! -d Burger ]
@@ -54,7 +64,10 @@ done
 echo "Comparing versions"
 py hamburglar/hamburglar_main.py out/$1.json out/$2.json -v -o out/$1_$2.json
 
-echo "Generating HTML file"
-cat out/$1_$2.json | py vitrine/vitrine_main.py -v -o vitrine/$1_$2.html
-
+# If a third parameter is passed, the Vitrine file will not be generated
+if [ -z "$3" ]
+then
+	echo "Generating HTML file"
+	cat out/$1_$2.json | py vitrine/vitrine_main.py -v -o vitrine/$1_$2.html
+fi
 echo "Done!"
