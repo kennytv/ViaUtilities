@@ -57,15 +57,20 @@ then mkdir out
 fi
 
 for v in $1 $2; do
-	echo "Dumping information of $v"
+	echo "Dumping information of $v"	
 	py burger/munch.py -v ../versions/client-$v.jar -o out/$v.json
 done
+
+# Exit if only one arg was passed
+if [ -z "$2" ]
+then exit 0
+fi
 
 echo "Comparing versions"
 py hamburglar/hamburglar_main.py out/$1.json out/$2.json -v -o out/$1_$2.json
 
 # If a third parameter is passed, the Vitrine file will not be generated
-if [ -z "$3" ]
+if [ ! -z "$3" ]
 then
 	echo "Generating HTML file"
 	cat out/$1_$2.json | py vitrine/vitrine_main.py -v -o vitrine/$1_$2.html

@@ -9,10 +9,13 @@ import shutil
 from lib import zips
 
 
-def hasArg(arg):
+# Minimal little argument checker
+def hasArg(arg, shortArg=None):
     arg = "--" + arg
+    if shortArg is not None:
+        shortArg = "-" + shortArg
     for argv in sys.argv:
-        if argv == arg:
+        if argv == arg or argv == shortArg:
             return True
     return False
 
@@ -84,7 +87,11 @@ def downloadMappings(oldVersion, version, url):
 
     # Burger
     vitrineFile = "Burger\\vitrine\\" + oldVersion + "_" + version + ".html"
-    if os.path.isfile(vitrineFile):
+    if oldVersion == version:
+        # Only dump the one version
+        if not os.path.isfile("Burger\\out\\" + version + ".json"):
+            os.system(".\\burger.sh " + version)
+    elif os.path.isfile(vitrineFile):
         print("Burger/Vitrine file already present!")
     else:
         print("\n=== Generating Burger mapping diff...\n", flush=True)
@@ -96,13 +103,13 @@ def downloadMappings(oldVersion, version, url):
         os.system(".\\" + vitrineFile)
 
     # Minimize client/server jar
-    if not hasArg("noMinimize"):
+    if not hasArg("noMinimize", 'm'):
         print("\nMinimizing client/server jar file...", flush=True)
         zips.delete_from_zip_file(clientFile, "^(assets|META-INF)\/")
         zips.delete_from_zip_file(serverFile, "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple)\/")
 
     # Sources export
-    if hasArg("generateSources"):
+    if hasArg("generateSources", 's'):
         print("\n=== Generating sources with Enigma...\n", flush=True)
         clientMappingsUrl = jsonObject["downloads"]["client_mappings"]["url"]
         serverMappingsUrl = jsonObject["downloads"]["server_mappings"]["url"]

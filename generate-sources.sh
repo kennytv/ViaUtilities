@@ -2,21 +2,23 @@
 
 platform=$1
 v=$2
+name=$platform-$v
 enigma=enigma-cli.jar
 
 # Generate Enigma mapping folder
-java -cp $enigma cuchaz.enigma.command.Main convert-mappings proguard sources/$platform-$v.txt enigma sources/$platform-$v-mapping
+if [ ! -d sources/$name-mapping ]
+then
+	echo "===== Generating Enigma mappings file"
+	java -cp $enigma cuchaz.enigma.command.Main convert-mappings proguard sources/$name.txt enigma_file sources/$name-mapping
+fi
 
-# Compile mapped jar
-# java -cp $enigma cuchaz.enigma.command.Main deobfuscate versions/$platform-$v.jar sources/$platform-$v-deobf.jar sources/$platform-$v-mapping
-
-if [ ! -d sources/$platform-$v ]
-then mkdir sources/$platform-$v
+if [ ! -d sources/$name ]
+then mkdir sources/$name
 fi
 
 # Export mapped sources
-java -cp $enigma cuchaz.enigma.command.Main decompile PROCYON versions/$platform-$v.jar sources/$platform-$v sources/$platform-$v-mapping
+java -cp $enigma cuchaz.enigma.command.Main decompile CFR versions/$name.jar sources/$name sources/$name-mapping
 
 # Cleanup
-rm -r sources/$platform-$v-mapping
-rm sources/$platform-$v.txt
+rm sources/$name-mapping
+rm sources/$name.txt

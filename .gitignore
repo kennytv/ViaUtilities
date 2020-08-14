@@ -2,6 +2,7 @@
 MappingsGenerator/.idea/
 MappingsGenerator/target/
 .idea/
+fernflower.jar
 fabric.properties
 dependency-reduced-pom.xml
 *.jar
