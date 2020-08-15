@@ -17,7 +17,7 @@ then mkdir sources/$name
 fi
 
 # Export mapped sources
-java -cp $enigma cuchaz.enigma.command.Main decompile CFR versions/$name.jar sources/$name sources/$name-mapping
+java -cp $enigma cuchaz.enigma.command.Main decompile PROCYON versions/$name.jar sources/$name sources/$name-mapping
 
 # Cleanup
 rm sources/$name-mapping

@@ -14,3 +14,9 @@ Various automated utility tools for Via updates.
 -  `java -jar MappingsGenerator-1.0.jar <path to server jar> <version>`
 
 Burger mapping files and Vitrine html views will be saved in the `Burger` directory, Via mappings in the `mappings directly`. If sources are exported, they will be thrown into the `sources` dir.
+
+## License
+This project is licensed under the [GNU General Public License 3.0](https://github.com/KennyTV/ViaUtilities/blob/master/LICENSE).
+
+The tree contains a pre-compiled, cherry-picked [Enigma](https://github.com/FabricMC/Enigma/) ([GNU Lesser General Public License](https://github.com/FabricMC/Enigma/blob/master/LICENSE)) version, since it likes to break every now and then.
+You can find the modified source [here](https://github.com/KennyTV/Enigma).
