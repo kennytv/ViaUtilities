@@ -21,7 +21,7 @@ public final class MappingsGenerator {
     public static void main(final String[] args) throws IOException {
         cleanup();
         net.minecraft.data.Main.main(new String[]{"--reports"});
-        collectMappings("1.16");
+        collectMappings("1.16.3");
     }
 
     public static void cleanup() {
@@ -48,11 +48,12 @@ public final class MappingsGenerator {
         JsonObject object = gson.fromJson(content, JsonObject.class);
 
         final JsonObject viaMappings = new JsonObject();
+
+        // Blocks and blockstates
         final JsonObject blockstates = new JsonObject();
         final JsonObject blocks = new JsonObject();
         viaMappings.add("blockstates", blockstates);
         viaMappings.add("blocks", blocks);
-
         String lastBlock = "";
         int id = 0;
         for (final Map.Entry<String, JsonElement> blocksEntry : object.entrySet()) {
@@ -85,16 +86,16 @@ public final class MappingsGenerator {
         content = new String(Files.readAllBytes(new File("generated/reports/registries.json").toPath()));
         object = gson.fromJson(content, JsonObject.class);
 
+        // Items
         final JsonObject items = new JsonObject();
         viaMappings.add("items", items);
-
         for (final Map.Entry<String, JsonElement> itemsEntry : object.getAsJsonObject("minecraft:item").getAsJsonObject("entries").entrySet()) {
             items.add(String.valueOf(itemsEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt()), new JsonPrimitive(itemsEntry.getKey()));
         }
 
+        // Sounds
         final JsonArray sounds = new JsonArray();
         viaMappings.add("sounds", sounds);
-
         int i = 0;
         for (final Map.Entry<String, JsonElement> soundEntry : object.getAsJsonObject("minecraft:sound_event").getAsJsonObject("entries").entrySet()) {
             if (soundEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
@@ -104,6 +105,19 @@ public final class MappingsGenerator {
             i++;
         }
 
+        // Particles
+        final JsonArray particles = new JsonArray();
+        viaMappings.add("particles", particles);
+        i = 0;
+        for (final Map.Entry<String, JsonElement> particleEntry : object.getAsJsonObject("minecraft:particle_type").getAsJsonObject("entries").entrySet()) {
+            if (particleEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
+                throw new IllegalStateException();
+            }
+            particles.add(new JsonPrimitive(particleEntry.getKey().replace("minecraft:", "")));
+            i++;
+        }
+
+        // Save
         try (final PrintWriter out = new PrintWriter("mappings/mapping-" + version + ".json")) {
             out.print(gson.toJson(viaMappings));
         }
