@@ -11,7 +11,7 @@ then
 fi
 
 # Normal execution
-burger_branch=1.16-dev
+burger_branch=1.17-dev
 
 if [ ! -d Burger ]
 then mkdir Burger
