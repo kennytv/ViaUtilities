@@ -95,11 +95,7 @@ def downloadMappings(oldVersion, version, url):
         print("Burger/Vitrine file already present!")
     else:
         print("\n=== Generating Burger mapping diff...\n", flush=True)
-
-        # For some reason it will fail if Vitrine is done directly with the mappings, soooo :aaa:
-        os.system(".\\burger.sh " + oldVersion + " " + version + " a") # Any 3rd arg to disable Vitrine generation
-        os.system(".\\burger.sh " + oldVersion + " " + version + " vitrine")
-
+        os.system(".\\burger.sh " + oldVersion + " " + version)
         os.system(".\\" + vitrineFile)
 
     # Minimize client/server jar
