@@ -17,9 +17,15 @@ public final class Main {
         final String version = args[1];
         MappingsGenerator.cleanup();
 
+        final File serverFile = new File(serverPath);
+        if (!serverFile.exists()) {
+            System.err.println("Server file does not exist at " + serverFile);
+            System.exit(1);
+        }
+
         System.out.println("Loading net.minecraft.data.Main class...");
         final ClassLoader loader = URLClassLoader.newInstance(
-                new URL[]{new File(serverPath).toURI().toURL()},
+                new URL[]{serverFile.toURI().toURL()},
                 Main.class.getClassLoader()
         );
 

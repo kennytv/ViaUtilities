@@ -21,7 +21,7 @@ public final class MappingsGenerator {
     public static void main(final String[] args) throws IOException {
         cleanup();
         net.minecraft.data.Main.main(new String[]{"--reports"});
-        collectMappings("1.16.3");
+        collectMappings("1.17.1");
     }
 
     public static void cleanup() {
@@ -118,6 +118,7 @@ public final class MappingsGenerator {
         }
 
         // Save
+        new File("mappings").mkdir();
         try (final PrintWriter out = new PrintWriter("mappings/mapping-" + version + ".json")) {
             out.print(gson.toJson(viaMappings));
         }

@@ -102,7 +102,7 @@ def downloadMappings(oldVersion, version, url):
     if not hasArg("noMinimize", 'm'):
         print("\nMinimizing client/server jar file...", flush=True)
         zips.delete_from_zip_file(clientFile, "^(assets|META-INF)\/")
-        zips.delete_from_zip_file(serverFile, "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple)\/")
+        zips.delete_from_zip_file(serverFile, "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple|oshi|com/sun)\/")
 
     # Sources export
     if hasArg("generateSources", 's'):
