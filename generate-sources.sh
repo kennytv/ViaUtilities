@@ -17,7 +17,8 @@ then mkdir sources/$name
 fi
 
 # Export mapped sources
-java -cp $enigma cuchaz.enigma.command.Main decompile PROCYON versions/$name.jar sources/$name sources/$name-mapping
+# 8 gigabytes of ram are not enough, even for the server lololol
+java -Xms4096M -Xmx12000M -cp $enigma cuchaz.enigma.command.Main decompile CFR versions/$name.jar sources/$name sources/$name-mapping
 
 # Cleanup
 rm sources/$name-mapping

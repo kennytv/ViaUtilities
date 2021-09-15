@@ -21,7 +21,7 @@ public final class MappingsGenerator {
     public static void main(final String[] args) throws IOException {
         cleanup();
         net.minecraft.data.Main.main(new String[]{"--reports"});
-        collectMappings("1.17.1");
+        collectMappings("21w37a");
     }
 
     public static void cleanup() {
@@ -114,6 +114,18 @@ public final class MappingsGenerator {
                 throw new IllegalStateException();
             }
             particles.add(new JsonPrimitive(particleEntry.getKey().replace("minecraft:", "")));
+            i++;
+        }
+
+        // Block entities
+        final JsonArray blockEntities = new JsonArray();
+        viaMappings.add("blockentities", blockEntities);
+        i = 0;
+        for (final Map.Entry<String, JsonElement> particleEntry : object.getAsJsonObject("minecraft:block_entity_type").getAsJsonObject("entries").entrySet()) {
+            if (particleEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
+                throw new IllegalStateException();
+            }
+            blockEntities.add(new JsonPrimitive(particleEntry.getKey().replace("minecraft:", "")));
             i++;
         }
 
