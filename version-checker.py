@@ -7,28 +7,7 @@ import os
 import sys
 import shutil
 from lib import zips
-
-
-# Minimal little argument checker
-def hasArg(arg, shortArg=None):
-    arg = "--" + arg
-    if shortArg is not None:
-        shortArg = "-" + shortArg
-    for argv in sys.argv:
-        if argv == arg or argv == shortArg:
-            return True
-    return False
-
-
-def getArg(arg):
-    counter = 0
-    arg = "--" + arg
-    for argv in sys.argv:
-        counter += 1
-        if argv != arg: continue
-        if len(sys.argv) != counter:
-            return sys.argv[counter]
-    return None
+from lib import args
 
 
 def loadJson(url):
@@ -99,12 +78,12 @@ def downloadMappings(oldVersion, version, url):
         os.system(".\\" + vitrineFile)
 
     # Minimize client/server jar
-    if not hasArg("noMinimize", 'm'):
+    if not args.hasArg("noMinimize", 'm'):
         print("\nMinimizing client/server jar file...", flush=True)
         zips.delete_from_zip_file(clientFile, "^(assets|META-INF)\/")
-        zips.delete_from_zip_file(serverFile, "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple|oshi|com/sun)\/")
+        zips.delete_from_zip_file(serverFile,
+                                  "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple|oshi|com/sun)\/")
 
-    # Sources export
     if hasArg("generateSources", 's'):
         print("\n=== Generating sources with Enigma...\n", flush=True)
         clientMappingsUrl = jsonObject["downloads"]["client_mappings"]["url"]
@@ -180,14 +159,15 @@ def check():
         time.sleep(300)
 
 
-ver = getArg("ver")
-if ver is None:
-    # Start check task
-    check()
-else:
-    # Generate for a single given version
-    print("Generating data for " + ver)
-    for entry in loadJson("https://launchermeta.mojang.com/mc/game/version_manifest.json")["versions"]:
-        if entry["id"] == ver:
-            downloadMappings(ver, ver, entry["url"])
-            break
+if __name__ == "__main__":
+    ver = args.getArg("ver")
+    if ver is None:
+        # Start check task
+        check()
+    else:
+        # Generate for a single given version
+        print("Generating data for " + ver)
+        for entry in loadJson("https://launchermeta.mojang.com/mc/game/version_manifest.json")["versions"]:
+            if entry["id"] == ver:
+                downloadMappings(ver, ver, entry["url"])
+                break

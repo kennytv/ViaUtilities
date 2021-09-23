@@ -18,8 +18,8 @@ fi
 
 # Export mapped sources
 # 8 gigabytes of ram are not enough, even for the server lololol
-java -Xms4096M -Xmx12000M -cp $enigma cuchaz.enigma.command.Main decompile CFR versions/$name.jar sources/$name sources/$name-mapping
+java -Xms4096M -Xmx15000M -cp $enigma cuchaz.enigma.command.Main decompile CFR versions/$name.jar sources/$name sources/$name-mapping
 
 # Cleanup
-rm sources/$name-mapping
-rm sources/$name.txt
+#rm sources/$name-mapping
+#rm sources/$name.txt
