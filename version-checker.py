@@ -4,7 +4,6 @@ import json
 import wget
 import subprocess
 import os
-import sys
 import shutil
 from lib import zips
 from lib import args
@@ -34,6 +33,10 @@ def downloadMappings(oldVersion, version, url):
         oldVersion = version
 
     jsonObject = loadJson(url)
+
+    with open("versions/" + version + ".json", 'w') as file:
+        json.dump(jsonObject, file)
+
     clientUrl = jsonObject["downloads"]["client"]["url"]
     serverUrl = jsonObject["downloads"]["server"]["url"]
 
@@ -84,7 +87,12 @@ def downloadMappings(oldVersion, version, url):
         zips.delete_from_zip_file(serverFile,
                                   "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple|oshi|com/sun)\/")
 
-    if hasArg("generateSources", 's'):
+    # Sources export
+    if args.hasArg("generateSourcesButBetter", 'v'):
+        print("\n=== Decompiling sources with VanillaGradle...\n", flush=True)
+        os.system("py sources.py --decompile --push --ver " + version)
+
+    if args.hasArg("generateSources", 's'):
         print("\n=== Generating sources with Enigma...\n", flush=True)
         clientMappingsUrl = jsonObject["downloads"]["client_mappings"]["url"]
         serverMappingsUrl = jsonObject["downloads"]["server_mappings"]["url"]
@@ -95,7 +103,6 @@ def downloadMappings(oldVersion, version, url):
         wget.download(clientMappingsUrl, "sources/client-" + version + ".txt")
         os.system(".\\generate-sources.sh client " + version)
 
-        # Server be broke for Enigma
         # print("\nGenerating server sources...\n", flush=True)
         # wget.download(serverMappingsUrl, "sources/server-" + version + ".txt")
         # os.system(".\\generate-sources.sh server " + version)
