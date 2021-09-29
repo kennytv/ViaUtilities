@@ -29,10 +29,46 @@ public final class Main {
                 Main.class.getClassLoader()
         );
 
-        final Object o = loader.loadClass("net.minecraft.data.Main").getConstructor().newInstance();
+        final Object o = loadMain(loader).getConstructor().newInstance();
         final Object[] mainArgs = {ARGS};
         o.getClass().getDeclaredMethod("main", String[].class).invoke(null, mainArgs);
 
+        waitForServerMain();
+
         MappingsGenerator.collectMappings(version);
+    }
+
+    public static void waitForServerMain() throws InterruptedException {
+        final Thread serverMain = threadByName("ServerMain");
+        if (serverMain == null) {
+            return;
+        }
+
+        int i = 0;
+        while (serverMain.isAlive()) {
+            Thread.sleep(50);
+            if (i++ * 50 > 30_000) {
+                System.err.println("Something definitely went wrong");
+                System.exit(1);
+            }
+        }
+    }
+
+    private static Thread threadByName(final String name) {
+        for (final Thread thread : Thread.getAllStackTraces().keySet()) {
+            if (thread.getName().equals(name)) {
+                return thread;
+            }
+        }
+        return null;
+    }
+
+    private static Class<?> loadMain(final ClassLoader classLoader) throws ClassNotFoundException {
+        System.setProperty("bundlerMainClass", "net.minecraft.data.Main");
+        try {
+            return classLoader.loadClass("net.minecraft.bundler.Main");
+        } catch (final ClassNotFoundException ignored) {
+            return classLoader.loadClass("net.minecraft.data.Main");
+        }
     }
 }

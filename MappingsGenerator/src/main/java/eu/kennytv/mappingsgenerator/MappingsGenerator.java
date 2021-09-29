@@ -18,10 +18,20 @@ public final class MappingsGenerator {
     /**
      * For in-IDE execution.
      */
-    public static void main(final String[] args) throws IOException {
+    public static void main(final String[] args) throws Exception {
         cleanup();
-        net.minecraft.data.Main.main(new String[]{"--reports"});
-        collectMappings("21w37a");
+
+        try {
+            // Server jar bundle since 21w39a
+            System.setProperty("bundlerMainClass", "net.minecraft.data.Main");
+            Class.forName("net.minecraft.bundler.Main").getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{"--reports"});
+            Main.waitForServerMain();
+        } catch (final ClassNotFoundException ignored) {
+            final Class<?> mainClass = Class.forName("net.minecraft.data.Main");
+            mainClass.getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{"--reports"});
+        }
+
+        collectMappings("21w39a");
     }
 
     public static void cleanup() {
