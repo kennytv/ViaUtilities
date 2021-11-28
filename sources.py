@@ -27,7 +27,7 @@ if os.path.isdir(sourcesJavaDir):
 print("Unzipping and moving sources...")
 os.mkdir(sourcesJavaDir)
 for jar in glob.glob(
-        f"C:\\Users\\Nassim\\.gradle\\caches\\VanillaGradle\\v1\\jars\\net\\minecraft\\joined\\{version}\\joined-{version}-sources.jar"):
+        f"C:\\Users\\Nassim\\.gradle\\caches\\VanillaGradle\\v2\\jars\\net\\minecraft\\joined\\{version}\\joined-{version}-sources.jar"):
     with zipfile.ZipFile(jar) as z:
         z.extractall(path=sourcesJavaDir)
     break
@@ -35,6 +35,6 @@ for jar in glob.glob(
 if push:
     os.chdir(sourcesDir)
     print("Committing and pushing...", flush=True)
-    os.system("git add . && git commit --no-signoff -am \"" + version + "\" && git push")
+    os.system("git pull && git add . && git commit --no-signoff -am \"" + version + "\" && git push")
 
 print("Done.")

@@ -31,7 +31,7 @@ public final class MappingsGenerator {
             mainClass.getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{"--reports"});
         }
 
-        collectMappings("21w39a");
+        collectMappings("1.18-rc2");
     }
 
     public static void cleanup() {
