@@ -5,6 +5,7 @@ import shutil
 import os
 from lib import args
 
+fromCache = args.hasArg("fromCache", 'c')
 decompile = args.hasArg("decompile", 'd')
 version = args.getArg("ver")
 push = args.hasArg("push", 'p')
@@ -12,7 +13,8 @@ push = args.hasArg("push", 'p')
 sourcesDir = "C:\\Users\\Nassim\\IdeaProjects\\MCSources\\"
 sourcesJavaDir = sourcesDir + "src\\main\\java\\"
 
-shutil.copyfile("versions\\" + version + ".json", sourcesDir + "manual.json")
+if not fromCache:
+    shutil.copyfile("versions\\" + version + ".json", sourcesDir + "manual.json")
 
 os.chdir(sourcesDir)
 
