@@ -28,15 +28,7 @@ def saveToFile(release, snapshot):
     versionsFile.close()
 
 
-def downloadMappings(oldVersion, version, url):
-    if oldVersion == "":
-        oldVersion = version
-
-    jsonObject = loadJson(url)
-
-    with open("versions/" + version + ".json", 'w') as file:
-        json.dump(jsonObject, file)
-
+def processMappings(jsonObject, oldVersion, version):
     clientUrl = jsonObject["downloads"]["client"]["url"]
     serverUrl = jsonObject["downloads"]["server"]["url"]
 
@@ -48,7 +40,7 @@ def downloadMappings(oldVersion, version, url):
     if os.path.isfile(clientFile):
         print("Client file already present!")
     else:
-        print("=== Downloading client...", flush=True)
+        print("=== Downloading client from " + clientUrl + "...", flush=True)
         wget.download(clientUrl, clientFile)
 
     # Server download
@@ -110,6 +102,18 @@ def downloadMappings(oldVersion, version, url):
     print("\nFinished", version, "processing!", flush=True)
 
 
+def downloadMappings(oldVersion, version, url):
+    if oldVersion == "":
+        oldVersion = version
+
+    jsonObject = loadJson(url)
+
+    with open("versions/" + version + ".json", 'w') as file:
+        json.dump(jsonObject, file)
+
+    processMappings(jsonObject, oldVersion, version)
+
+
 def check():
     try:
         versionsFile = open("versions.txt", "r")
@@ -168,13 +172,17 @@ def check():
 
 if __name__ == "__main__":
     ver = args.getArg("ver")
-    if ver is None:
-        # Start check task
-        check()
-    else:
+    if ver is not None and args.hasArg("localVersionFile", 'l'):
+        with open("versions/" + ver + ".json", 'r') as file:
+            jsonObject = json.load(file)
+        processMappings(jsonObject, args.getArg("oldVer"), ver)
+    elif ver is not None:
         # Generate for a single given version
         print("Generating data for " + ver)
         for entry in loadJson("https://launchermeta.mojang.com/mc/game/version_manifest.json")["versions"]:
             if entry["id"] == ver:
                 downloadMappings(ver, ver, entry["url"])
                 break
+    else:
+        # Start check task
+        check()

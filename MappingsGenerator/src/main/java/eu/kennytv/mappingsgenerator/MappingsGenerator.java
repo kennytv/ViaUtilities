@@ -31,7 +31,7 @@ public final class MappingsGenerator {
             mainClass.getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{"--reports"});
         }
 
-        collectMappings("1.18-rc2");
+        collectMappings("1.19");
     }
 
     public static void cleanup() {
@@ -136,6 +136,18 @@ public final class MappingsGenerator {
                 throw new IllegalStateException();
             }
             blockEntities.add(new JsonPrimitive(particleEntry.getKey().replace("minecraft:", "")));
+            i++;
+        }
+
+        // Brigadier argument types
+        final JsonArray argumentTypes = new JsonArray();
+        viaMappings.add("argumenttypes", argumentTypes);
+        i = 0;
+        for (final Map.Entry<String, JsonElement> particleEntry : object.getAsJsonObject("minecraft:command_argument_type").getAsJsonObject("entries").entrySet()) {
+            if (particleEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
+                throw new IllegalStateException();
+            }
+            argumentTypes.add(new JsonPrimitive(particleEntry.getKey().replace("minecraft:", "")));
             i++;
         }
 
