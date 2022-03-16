@@ -147,7 +147,7 @@ public final class MappingsGenerator {
             if (particleEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
                 throw new IllegalStateException();
             }
-            argumentTypes.add(new JsonPrimitive(particleEntry.getKey().replace("minecraft:", "")));
+            argumentTypes.add(new JsonPrimitive(particleEntry.getKey()));
             i++;
         }
 
