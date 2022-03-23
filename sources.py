@@ -3,6 +3,7 @@ import subprocess
 import zipfile
 import shutil
 import os
+from os.path import expanduser
 from lib import args
 
 fromCache = args.hasArg("fromCache", 'c')
@@ -10,7 +11,7 @@ decompile = args.hasArg("decompile", 'd')
 version = args.getArg("ver")
 push = args.hasArg("push", 'p')
 # Hmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
-sourcesDir = "C:\\Users\\Nassim\\IdeaProjects\\MCSources\\"
+sourcesDir = expanduser("~\\IdeaProjects\\MCSources\\")
 sourcesJavaDir = sourcesDir + "src\\main\\java\\"
 
 if not fromCache:
@@ -28,11 +29,14 @@ if os.path.isdir(sourcesJavaDir):
 
 print("Unzipping and moving sources...")
 os.mkdir(sourcesJavaDir)
-for jar in glob.glob(
-        f"C:\\Users\\Nassim\\.gradle\\caches\\VanillaGradle\\v2\\jars\\net\\minecraft\\joined\\{version}\\joined-{version}-sources.jar"):
+for jar in glob.glob(expanduser(
+        f"~\\.gradle\\caches\\VanillaGradle\\v2\\jars\\net\\minecraft\\joined\\{version}\\joined-{version}-sources.jar")):
     with zipfile.ZipFile(jar) as z:
         z.extractall(path=sourcesJavaDir)
     break
+
+with open(sourcesDir + "\\last.txt", 'w') as file:
+    file.write(version)
 
 if push:
     os.chdir(sourcesDir)
