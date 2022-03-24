@@ -15,7 +15,7 @@ sourcesDir = expanduser("~\\IdeaProjects\\MCSources\\")
 sourcesJavaDir = sourcesDir + "src\\main\\java\\"
 
 if not fromCache:
-    shutil.copyfile("versions\\" + version + ".json", sourcesDir + "manual.json")
+    shutil.copyfile("versions\\" + version + ".json", sourcesDir + "version.json")
 
 os.chdir(sourcesDir)
 
