@@ -100,56 +100,15 @@ public final class MappingsGenerator {
         final JsonObject items = new JsonObject();
         viaMappings.add("items", items);
         for (final Map.Entry<String, JsonElement> itemsEntry : object.getAsJsonObject("minecraft:item").getAsJsonObject("entries").entrySet()) {
-            items.add(String.valueOf(itemsEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt()), new JsonPrimitive(itemsEntry.getKey()));
+            final int protocolId = itemsEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt();
+            items.add(String.valueOf(protocolId), new JsonPrimitive(itemsEntry.getKey()));
         }
 
-        // Sounds
-        final JsonArray sounds = new JsonArray();
-        viaMappings.add("sounds", sounds);
-        int i = 0;
-        for (final Map.Entry<String, JsonElement> soundEntry : object.getAsJsonObject("minecraft:sound_event").getAsJsonObject("entries").entrySet()) {
-            if (soundEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
-                throw new IllegalStateException();
-            }
-            sounds.add(new JsonPrimitive(soundEntry.getKey().replace("minecraft:", "")));
-            i++;
-        }
-
-        // Particles
-        final JsonArray particles = new JsonArray();
-        viaMappings.add("particles", particles);
-        i = 0;
-        for (final Map.Entry<String, JsonElement> particleEntry : object.getAsJsonObject("minecraft:particle_type").getAsJsonObject("entries").entrySet()) {
-            if (particleEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
-                throw new IllegalStateException();
-            }
-            particles.add(new JsonPrimitive(particleEntry.getKey().replace("minecraft:", "")));
-            i++;
-        }
-
-        // Block entities
-        final JsonArray blockEntities = new JsonArray();
-        viaMappings.add("blockentities", blockEntities);
-        i = 0;
-        for (final Map.Entry<String, JsonElement> particleEntry : object.getAsJsonObject("minecraft:block_entity_type").getAsJsonObject("entries").entrySet()) {
-            if (particleEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
-                throw new IllegalStateException();
-            }
-            blockEntities.add(new JsonPrimitive(particleEntry.getKey().replace("minecraft:", "")));
-            i++;
-        }
-
-        // Brigadier argument types
-        final JsonArray argumentTypes = new JsonArray();
-        viaMappings.add("argumenttypes", argumentTypes);
-        i = 0;
-        for (final Map.Entry<String, JsonElement> particleEntry : object.getAsJsonObject("minecraft:command_argument_type").getAsJsonObject("entries").entrySet()) {
-            if (particleEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt() != i) {
-                throw new IllegalStateException();
-            }
-            argumentTypes.add(new JsonPrimitive(particleEntry.getKey()));
-            i++;
-        }
+        addArray(viaMappings, object, "minecraft:sound_event", "sounds", true);
+        addArray(viaMappings, object, "minecraft:particle_type", "particles", true);
+        addArray(viaMappings, object, "minecraft:block_entity_type", "blockentities", true);
+        addArray(viaMappings, object, "minecraft:command_argument_type", "argumenttypes");
+        addArray(viaMappings, object, "minecraft:enchantment", "enchantments");
 
         // Save
         new File("mappings").mkdir();
@@ -159,5 +118,24 @@ public final class MappingsGenerator {
 
         new File("logs").deleteOnExit();
         System.out.println("Done!");
+    }
+
+    private static void addArray(final JsonObject mappings, final JsonObject registry, final String registryKey, final String mappingsKey) {
+        addArray(mappings, registry, registryKey, mappingsKey, false);
+    }
+
+    private static void addArray(final JsonObject mappings, final JsonObject registry, final String registryKey, final String mappingsKey, final boolean removeNamespace) {
+        final JsonArray array = new JsonArray();
+        mappings.add(mappingsKey, array);
+        int i = 0;
+        for (final Map.Entry<String, JsonElement> entry : registry.getAsJsonObject(registryKey).getAsJsonObject("entries").entrySet()) {
+            final int protocolId = entry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt();
+            if (protocolId != i) {
+                throw new IllegalStateException("Expected id " + i + " to follow, got " + protocolId + " in " + registryKey);
+            }
+
+            array.add(new JsonPrimitive(removeNamespace ? entry.getKey().replace("minecraft:", "") : entry.getKey()));
+            i++;
+        }
     }
 }
