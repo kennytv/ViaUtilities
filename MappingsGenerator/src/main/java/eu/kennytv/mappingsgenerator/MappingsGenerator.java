@@ -109,6 +109,7 @@ public final class MappingsGenerator {
         addArray(viaMappings, object, "minecraft:block_entity_type", "blockentities", true);
         addArray(viaMappings, object, "minecraft:command_argument_type", "argumenttypes");
         addArray(viaMappings, object, "minecraft:enchantment", "enchantments");
+        addArray(viaMappings, object, "minecraft:entity_type", "entities");
 
         // Save
         new File("mappings").mkdir();
