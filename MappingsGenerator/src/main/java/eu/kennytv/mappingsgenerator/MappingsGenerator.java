@@ -110,6 +110,8 @@ public final class MappingsGenerator {
         addArray(viaMappings, object, "minecraft:command_argument_type", "argumenttypes");
         addArray(viaMappings, object, "minecraft:enchantment", "enchantments");
         addArray(viaMappings, object, "minecraft:entity_type", "entities");
+        addArray(viaMappings, object, "minecraft:motive", "paintings");
+        addArray(viaMappings, object, "minecraft:painting_variant", "paintings");
 
         // Save
         new File("mappings").mkdir();
@@ -126,6 +128,12 @@ public final class MappingsGenerator {
     }
 
     private static void addArray(final JsonObject mappings, final JsonObject registry, final String registryKey, final String mappingsKey, final boolean removeNamespace) {
+        if (!registry.has(registryKey)) {
+            System.out.println("Ignoring missing registry: " + registryKey);
+            return;
+        }
+
+        System.out.println("Collecting " + registryKey + "...");
         final JsonArray array = new JsonArray();
         mappings.add(mappingsKey, array);
         int i = 0;
