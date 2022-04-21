@@ -75,7 +75,7 @@ def processMappings(jsonObject, oldVersion, version):
     # Minimize client/server jar
     if not args.hasArg("noMinimize", 'm'):
         print("\nMinimizing client/server jar file...", flush=True)
-        zips.delete_from_zip_file(clientFile, "^(assets|META-INF)\/")
+        zips.delete_from_zip_file(clientFile, "^(assets/realms|assets/minecraft/textures|assets/minecraft/models|assets/minecraft/blockstates|assets/minecraft/shaders)\/")
         zips.delete_from_zip_file(serverFile,
                                   "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple|oshi|com/sun)\/")
 
