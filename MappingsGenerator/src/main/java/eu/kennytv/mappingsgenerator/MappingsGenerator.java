@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.TreeMap;
 
 public final class MappingsGenerator {
 
@@ -60,24 +61,21 @@ public final class MappingsGenerator {
         final JsonObject viaMappings = new JsonObject();
 
         // Blocks and blockstates
-        final JsonObject blockstates = new JsonObject();
-        final JsonObject blocks = new JsonObject();
-        viaMappings.add("blockstates", blockstates);
-        viaMappings.add("blocks", blocks);
-        String lastBlock = "";
-        int id = 0;
+        final Map<Integer, String> blockstatesById = new TreeMap<>();
         for (final Map.Entry<String, JsonElement> blocksEntry : object.entrySet()) {
             final JsonObject block = blocksEntry.getValue().getAsJsonObject();
             final JsonArray states = block.getAsJsonArray("states");
             for (final JsonElement state : states) {
-                final StringBuilder value = new StringBuilder(blocksEntry.getKey());
-                if (!lastBlock.equals(blocksEntry.getKey())) {
-                    lastBlock = blocksEntry.getKey();
-                    blocks.add(Integer.toString(id++), new JsonPrimitive(lastBlock.replace("minecraft:", "")));
+                final JsonObject stateObject = state.getAsJsonObject();
+                final int id = stateObject.getAsJsonPrimitive("id").getAsInt();
+                if (blockstatesById.containsKey(id)) {
+                    throw new IllegalArgumentException("Duplicate blockstate id: " + id);
                 }
-                if (state.getAsJsonObject().has("properties")) {
+
+                final StringBuilder value = new StringBuilder(blocksEntry.getKey());
+                if (stateObject.has("properties")) {
                     value.append('[');
-                    final JsonObject properties = state.getAsJsonObject().getAsJsonObject("properties");
+                    final JsonObject properties = stateObject.getAsJsonObject("properties");
                     boolean first = true;
                     for (final Map.Entry<String, JsonElement> propertyEntry : properties.entrySet()) {
                         if (first) {
@@ -89,7 +87,26 @@ public final class MappingsGenerator {
                     }
                     value.append(']');
                 }
-                blockstates.add(state.getAsJsonObject().get("id").getAsString(), new JsonPrimitive(value.toString()));
+                blockstatesById.put(id, value.toString());
+            }
+        }
+
+        final JsonObject blockstates = new JsonObject();
+        final JsonObject blocks = new JsonObject();
+        viaMappings.add("blockstates", blockstates);
+        viaMappings.add("blocks", blocks);
+
+        String lastBlock = "";
+        int blockId = 0;
+        for (final Map.Entry<Integer, String> entry : blockstatesById.entrySet()) {
+            final String idString = Integer.toString(entry.getKey());
+            final String blockstate = entry.getValue();
+            blockstates.addProperty(idString, blockstate);
+
+            final String block = blockstate.split("\\[", 2)[0];
+            if (!lastBlock.equals(block)) {
+                lastBlock = block;
+                blocks.add(Integer.toString(blockId++), new JsonPrimitive(lastBlock.replace("minecraft:", "")));
             }
         }
 
@@ -97,11 +114,17 @@ public final class MappingsGenerator {
         object = gson.fromJson(content, JsonObject.class);
 
         // Items
+        final Map<Integer, String> itemsById = new TreeMap<>();
+        final JsonObject entries = object.getAsJsonObject("minecraft:item").getAsJsonObject("entries");
+        for (final Map.Entry<String, JsonElement> itemsEntry : entries.entrySet()) {
+            final int protocolId = itemsEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt();
+            itemsById.put(protocolId, itemsEntry.getKey());
+        }
+
         final JsonObject items = new JsonObject();
         viaMappings.add("items", items);
-        for (final Map.Entry<String, JsonElement> itemsEntry : object.getAsJsonObject("minecraft:item").getAsJsonObject("entries").entrySet()) {
-            final int protocolId = itemsEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt();
-            items.add(String.valueOf(protocolId), new JsonPrimitive(itemsEntry.getKey()));
+        for (final Map.Entry<Integer, String> entry : itemsById.entrySet()) {
+            items.addProperty(Integer.toString(entry.getKey()), entry.getValue());
         }
 
         addArray(viaMappings, object, "minecraft:sound_event", "sounds", true);
@@ -134,17 +157,24 @@ public final class MappingsGenerator {
         }
 
         System.out.println("Collecting " + registryKey + "...");
-        final JsonArray array = new JsonArray();
-        mappings.add(mappingsKey, array);
-        int i = 0;
-        for (final Map.Entry<String, JsonElement> entry : registry.getAsJsonObject(registryKey).getAsJsonObject("entries").entrySet()) {
+        final JsonObject entries = registry.getAsJsonObject(registryKey).getAsJsonObject("entries");
+        final String[] keys = new String[entries.size()];
+        for (final Map.Entry<String, JsonElement> entry : entries.entrySet()) {
             final int protocolId = entry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt();
-            if (protocolId != i) {
-                throw new IllegalStateException("Expected id " + i + " to follow, got " + protocolId + " in " + registryKey);
+            if (protocolId < 0 || protocolId >= keys.length) {
+                throw new IllegalArgumentException("Out of bounds protocol id: " + protocolId + " in " + registryKey);
+            }
+            if (keys[protocolId] != null) {
+                throw new IllegalArgumentException("Duplicate protocol id: " + protocolId + " in " + registryKey);
             }
 
-            array.add(new JsonPrimitive(removeNamespace ? entry.getKey().replace("minecraft:", "") : entry.getKey()));
-            i++;
+            keys[protocolId] = removeNamespace ? entry.getKey().replace("minecraft:", "") : entry.getKey();
+        }
+
+        final JsonArray array = new JsonArray();
+        mappings.add(mappingsKey, array);
+        for (final String key : keys) {
+            array.add(new JsonPrimitive(key));
         }
     }
 }
