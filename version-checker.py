@@ -130,7 +130,7 @@ def check():
         attempt += 1
         print("Checking #" + str(attempt), flush=True)
 
-        jsonObject = loadJson("https://launchermeta.mojang.com/mc/game/version_manifest.json")
+        jsonObject = loadJson("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
 
         latest = jsonObject["latest"]
         latestRelease = latest["release"]
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     elif ver is not None:
         # Generate for a single given version
         print("Generating data for " + ver)
-        for entry in loadJson("https://launchermeta.mojang.com/mc/game/version_manifest.json")["versions"]:
+        for entry in loadJson("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")["versions"]:
             if entry["id"] == ver:
                 downloadMappings(ver, ver, entry["url"])
                 break
