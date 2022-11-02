@@ -1,6 +1,12 @@
 # ViaUtilities
 Various automated utility tools for Via updates.
 
+## Dependencies
+* At least Java 17
+* Python with six, jawa, and wget packages
+* git
+* (git) bash
+
 ## Usage
 - `py version-checker.py` is the main file, subsequently calling the other scripts. It searches for new snapshots and releases. Once one is found, the server will be downloaded its mappings will be generated.
   - `--generateSources` or `-s` to also generate mapped sources for client and server - I don't actually use this anymore and only keep it as a fallback; [VanillaGradle is where it's at](https://github.com/SpongePowered/VanillaGradle)
