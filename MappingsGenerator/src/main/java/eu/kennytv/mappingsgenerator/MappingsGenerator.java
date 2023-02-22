@@ -24,6 +24,7 @@ public final class MappingsGenerator {
 
         try {
             // Server jar bundle since 21w39a
+            // Alternatively, java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --reports
             System.setProperty("bundlerMainClass", "net.minecraft.data.Main");
             Class.forName("net.minecraft.bundler.Main").getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{"--reports"});
             Main.waitForServerMain();
@@ -32,7 +33,7 @@ public final class MappingsGenerator {
             mainClass.getDeclaredMethod("main", String[].class).invoke(null, (Object) new String[]{"--reports"});
         }
 
-        collectMappings("1.19");
+        collectMappings("23w08a");
     }
 
     public static void cleanup() {
