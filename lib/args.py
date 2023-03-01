@@ -16,7 +16,8 @@ def getArg(arg):
     arg = "--" + arg
     for argv in sys.argv:
         counter += 1
-        if argv != arg: continue
+        if argv != arg:
+            continue
         if len(sys.argv) != counter:
             return sys.argv[counter]
     return None

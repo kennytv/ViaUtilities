@@ -26,6 +26,7 @@ Various automated utility tools for Via updates.
   - `--decompile` or `-d` to decompile the version
   - `--push` or `-p` to commit and push the changes to the project's remote
   - Example: `py sources.py --ver 1.18.2 -d -p`
+- `diff-checker.py` is basically Burger lite but operating on mapped code for things outside dumpable registries
 
 Burger mapping files and Vitrine html views will be saved in the `Burger` directory, Via mappings in the `mappings directly`. If sources are exported, they will be thrown into the `sources` dir.
 

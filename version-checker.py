@@ -75,7 +75,8 @@ def processMappings(jsonObject, oldVersion, version):
     # Minimize client/server jar
     if not args.hasArg("noMinimize", 'm'):
         print("\nMinimizing client/server jar file...", flush=True)
-        zips.delete_from_zip_file(clientFile, "^(assets/realms|assets/minecraft/textures|assets/minecraft/models|assets/minecraft/blockstates|assets/minecraft/shaders)\/")
+        zips.delete_from_zip_file(clientFile,
+                                  "^(assets/realms|assets/minecraft/textures|assets/minecraft/models|assets/minecraft/blockstates|assets/minecraft/shaders)\/")
         zips.delete_from_zip_file(serverFile,
                                   "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple|oshi|com/sun)\/")
 
@@ -83,6 +84,7 @@ def processMappings(jsonObject, oldVersion, version):
     if args.hasArg("generateSourcesButBetter", 'v'):
         print("\n=== Decompiling sources with VanillaGradle...\n", flush=True)
         os.system("py sources.py --decompile --push --ver " + version)
+        os.system("py diff-checker.py --output diffs/" + version + ".patch")
 
     if args.hasArg("generateSources", 's'):
         print("\n=== Generating sources with Enigma...\n", flush=True)
@@ -183,6 +185,8 @@ if __name__ == "__main__":
             if entry["id"] == ver:
                 downloadMappings(ver, ver, entry["url"])
                 break
+
+        print("Version not found in Mojang version manifest")
     else:
         # Start check task
         check()

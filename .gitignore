@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 MappingsGenerator/.idea/
 MappingsGenerator/target/
+MappingsGenerator/libraries/
 .idea/
 fabric.properties
 dependency-reduced-pom.xml
