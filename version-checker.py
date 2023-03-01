@@ -1,4 +1,5 @@
 import time
+
 import six.moves.urllib.request
 import json
 import wget
@@ -9,39 +10,39 @@ from lib import zips
 from lib import args
 
 
-def loadJson(url):
+def loadJson(url: str):
     with six.moves.urllib.request.urlopen(url) as stream:
         return json.load(stream)
 
 
-def delete(file):
+def delete(path: str):
     try:
-        os.remove(file)
+        os.remove(path)
     except:
         pass
 
 
-def saveToFile(release, snapshot):
+def saveToFile(release: str, snapshot: str):
     versionsFile = open("versions.txt", "w")
     versionsFile.write(release + "\n")
     versionsFile.write(snapshot)
     versionsFile.close()
 
 
-def processMappings(jsonObject, oldVersion, version):
-    clientUrl = jsonObject["downloads"]["client"]["url"]
-    serverUrl = jsonObject["downloads"]["server"]["url"]
+def processMappings(jsonObject, oldVersion: str, version: str):
+    clientUrl: str = jsonObject["downloads"]["client"]["url"]
+    serverUrl: str = jsonObject["downloads"]["server"]["url"]
 
     if not os.path.isdir("versions"):
         os.mkdir("versions")
 
     # Client download
-    clientFile = "versions/client-" + version + ".jar"
-    if os.path.isfile(clientFile):
+    clientFilePath: str = "versions/client-" + version + ".jar"
+    if os.path.isfile(clientFilePath):
         print("Client file already present!")
     else:
         print("=== Downloading client from " + clientUrl + "...", flush=True)
-        wget.download(clientUrl, clientFile)
+        wget.download(clientUrl, clientFilePath)
 
     # Server download
     serverFile = "versions/server-" + version + ".jar"
@@ -75,36 +76,36 @@ def processMappings(jsonObject, oldVersion, version):
     # Minimize client/server jar
     if not args.hasArg("noMinimize", 'm'):
         print("\nMinimizing client/server jar file...", flush=True)
-        zips.delete_from_zip_file(clientFile,
+        zips.delete_from_zip_file(clientFilePath,
                                   "^(assets/realms|assets/minecraft/textures|assets/minecraft/models|assets/minecraft/blockstates|assets/minecraft/shaders)\/")
         zips.delete_from_zip_file(serverFile,
                                   "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple|oshi|com/sun)\/")
 
     # Sources export
-    if args.hasArg("generateSourcesButBetter", 'v'):
+    if args.hasArg("generateSources", 'v'):
         print("\n=== Decompiling sources with VanillaGradle...\n", flush=True)
         os.system("py sources.py --decompile --push --ver " + version)
         os.system("py diff-checker.py --output diffs/" + version + ".patch")
 
-    if args.hasArg("generateSources", 's'):
+    if args.hasArg("generateSourcesEnigma", 's'):
         print("\n=== Generating sources with Enigma...\n", flush=True)
-        clientMappingsUrl = jsonObject["downloads"]["client_mappings"]["url"]
-        serverMappingsUrl = jsonObject["downloads"]["server_mappings"]["url"]
+        clientMappingsUrl: str = jsonObject["downloads"]["client_mappings"]["url"]
+        serverMappingsUrl: str = jsonObject["downloads"]["server_mappings"]["url"]
         if not os.path.isdir("sources"):
             os.mkdir("sources")
 
         print("\nGenerating client sources...\n", flush=True)
         wget.download(clientMappingsUrl, "sources/client-" + version + ".txt")
-        os.system(".\\generate-sources.sh client " + version)
+        os.system(".\\sources-enigma.sh client " + version)
 
         # print("\nGenerating server sources...\n", flush=True)
         # wget.download(serverMappingsUrl, "sources/server-" + version + ".txt")
-        # os.system(".\\generate-sources.sh server " + version)
+        # os.system(".\\sources-enigma.sh server " + version)
 
     print("\nFinished", version, "processing!", flush=True)
 
 
-def downloadMappings(oldVersion, version, url):
+def downloadMappings(oldVersion: str, version: str, url: str):
     if oldVersion == "":
         oldVersion = version
 
@@ -118,16 +119,15 @@ def downloadMappings(oldVersion, version, url):
 
 def check():
     try:
-        versionsFile = open("versions.txt", "r")
-        oldVersions = versionsFile.read().split("\n")
-        versionsFile.close()
-        oldRelease = oldVersions[0]
-        oldSnapshot = oldVersions[1]
+        with open("versions.txt", "r") as versionsFile:
+            oldVersions: list[str] = versionsFile.read().split("\n")
+        oldRelease: str = oldVersions[0]
+        oldSnapshot: str = oldVersions[1]
     except IOError:
         oldRelease = ""
         oldSnapshot = ""
 
-    attempt = 0
+    attempt: int = 0
     while True:
         attempt += 1
         print("Checking #" + str(attempt), flush=True)
@@ -135,21 +135,21 @@ def check():
         jsonObject = loadJson("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")
 
         latest = jsonObject["latest"]
-        latestRelease = latest["release"]
-        latestSnapshot = latest["snapshot"]
+        latestRelease: str = latest["release"]
+        latestSnapshot: str = latest["snapshot"]
 
         if oldRelease != latestRelease:
             print("A new release has been published:", latestRelease, flush=True)
-            old = oldRelease
-            new = latestRelease
-            oldRelease = latestRelease
+            old: str = oldRelease
+            new: str = latestRelease
+            oldRelease: str = latestRelease
 
             saveToFile(latestRelease, oldSnapshot)
         elif oldSnapshot != latestSnapshot:
             print("A new snapshot has been published:", latestSnapshot, flush=True)
-            old = oldSnapshot
-            new = latestSnapshot
-            oldSnapshot = latestSnapshot
+            old: str = oldSnapshot
+            new: str = latestSnapshot
+            oldSnapshot: str = latestSnapshot
 
             saveToFile(oldRelease, latestSnapshot)
         else:
@@ -173,7 +173,7 @@ def check():
 
 
 if __name__ == "__main__":
-    ver = args.getArg("ver")
+    ver: str | None = args.getArg("ver")
     if ver is not None and args.hasArg("localVersionFile", 'l'):
         with open("versions/" + ver + ".json", 'r') as file:
             jsonObject = json.load(file)

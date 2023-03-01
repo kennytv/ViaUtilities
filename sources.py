@@ -5,13 +5,13 @@ import os
 from os.path import expanduser
 from lib import args
 
-fromCache = args.hasArg("fromCache", 'c')
-decompile = args.hasArg("decompile", 'd')
-version = args.getArg("ver")
-push = args.hasArg("push", 'p')
+fromCache: bool = args.hasArg("fromCache", 'c')
+decompile: bool = args.hasArg("decompile", 'd')
+version: str = args.getArg("ver")
+push: bool = args.hasArg("push", 'p')
 # Hmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
-sourcesDir = expanduser("~\\IdeaProjects\\MCSources\\")
-sourcesJavaDir = sourcesDir + "src\\main\\java\\"
+sourcesDir: str = expanduser("~\\IdeaProjects\\MCSources\\")
+sourcesJavaDir: str = sourcesDir + "src\\main\\java\\"
 
 if not fromCache:
     shutil.copyfile("versions\\" + version + ".json", sourcesDir + "version.json")
