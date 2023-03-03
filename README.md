@@ -19,7 +19,7 @@ Various automated utility tools for Via updates.
   - Requires the proguard mapping file `sources/<platform>-<version>.txt` (e.g. `sources/client-1.15.2.txt`)
 - `./burger.sh <old version> <new version>` to generate Burger a diff.
   - Requires the client jar in `versions/client-<version>.jar` (e.g. `versions/client-1.15.2.jar`).
-- `java -jar MappingsGenerator-1.0.jar <path to server jar> <version>`
+- `java -jar MappingsGenerator-2.0.jar <path to server jar> <version>`
 - `py sources.py` to generate and export sources using VanillaGradle
   - `--ver` (required)
   - `--fromCache` or `-c`to not move the version manifest to the project root

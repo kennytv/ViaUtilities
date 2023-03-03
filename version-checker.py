@@ -57,7 +57,7 @@ def processMappings(jsonObject, oldVersion: str, version: str):
         print("Via mapping file already present!")
     else:
         print("\n=== Starting server mapping generator...\n", flush=True)
-        subprocess.call(["java", "-jar", "MappingsGenerator-1.0.jar", "versions/server-" + version + ".jar", version])
+        subprocess.call(["java", "-jar", "MappingsGenerator-2.0.jar", "versions/server-" + version + ".jar", version])
         shutil.rmtree('logs')
 
     # Burger
