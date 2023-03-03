@@ -85,7 +85,7 @@ public final class MappingsLoader {
                 shiftChanges++;
             }
         }
-        return new MappingsResult(output, emptyMappings, identityMappings, shiftChanges);
+        return new MappingsResult(output, mappedIdentifiers.size(), emptyMappings, identityMappings, shiftChanges);
     }
 
     /**
@@ -176,10 +176,11 @@ public final class MappingsLoader {
      * Result of a mapping data loader operation.
      *
      * @param mappings         int to int id mappings
+     * @param mappedSize       number of mapped ids, most likely greater than the length of the mappings array
      * @param emptyMappings    number of empty (-1) mappings
      * @param identityMappings number of identity mappings
      * @param shiftChanges     number of shift changes where a mapped id is not the last mapped id + 1
      */
-    record MappingsResult(int[] mappings, int emptyMappings, int identityMappings, int shiftChanges) {
+    record MappingsResult(int[] mappings, int mappedSize, int emptyMappings, int identityMappings, int shiftChanges) {
     }
 }

@@ -333,7 +333,7 @@ public final class MappingsOptimizer {
         }
 
         final CompoundTag tag = new CompoundTag();
-        tag.put("mappedSize", new IntTag(mappings.length));
+        tag.put("mappedSize", new IntTag(result.mappedSize()));
 
         final int changedFormatSize = approximateChangedFormatSize(result);
         final int shiftFormatSize = approximateShiftFormatSize(result);
