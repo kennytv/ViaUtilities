@@ -20,6 +20,7 @@ package eu.kennytv.mappingsgenerator;
 import com.github.steveice10.opennbt.NBTIO;
 import com.github.steveice10.opennbt.tag.builtin.CompoundTag;
 import com.github.steveice10.opennbt.tag.builtin.IntArrayTag;
+import com.github.steveice10.opennbt.tag.builtin.IntTag;
 import com.github.steveice10.opennbt.tag.builtin.ListTag;
 import com.github.steveice10.opennbt.tag.builtin.StringTag;
 import com.github.steveice10.opennbt.tag.builtin.Tag;
@@ -237,9 +238,12 @@ public final class MappingsOptimizer {
             return;
         }
 
-        if (numberOfChanges * 2 < mappings.length) {
-            System.out.println(key + ": Storing in alternative format");
+        final int changedFormatSize = approximateChangedFormatSize(result);
+        final int shiftFormatSize = approximateShiftFormatSize(result);
+        final int plainFormatSize = mappings.length;
+        if (changedFormatSize < plainFormatSize && changedFormatSize < shiftFormatSize) {
             // Put two intarrays of only changed ids instead of adding an entry for every single identifier
+            System.out.println(key + ": Storing as changed and mapped arrays");
             final CompoundTag changedTag = new CompoundTag();
             final int[] unmapped = new int[numberOfChanges];
             final int[] mapped = new int[numberOfChanges];
@@ -253,12 +257,58 @@ public final class MappingsOptimizer {
                 }
             }
 
+            if (index != numberOfChanges) {
+                throw new IllegalStateException("Index " + index + " does not equal number of changes " + numberOfChanges);
+            }
+
             changedTag.put("changed", new IntArrayTag(unmapped));
             changedTag.put("mapped", new IntArrayTag(mapped));
+            changedTag.put("size", new IntTag(mappings.length));
             tag.put(key, changedTag);
+        } else if (shiftFormatSize < changedFormatSize && shiftFormatSize < plainFormatSize) {
+            System.out.println(key + ": Storing as shifts");
+            final CompoundTag shiftsTag = new CompoundTag();
+            final int[] shiftsAt = new int[result.shiftChanges()];
+            final int[] shifts = new int[result.shiftChanges()];
+
+            int index = 0;
+            // Check the first entry
+            if (mappings[0] != 0) {
+                shiftsAt[0] = 0;
+                shifts[0] = mappings[0];
+                index++;
+            }
+
+            for (int id = 1; id < mappings.length; id++) {
+                final int mappedId = mappings[id];
+                if (mappedId != mappings[id - 1] + 1) {
+                    shiftsAt[index] = id;
+                    shifts[index] = mappedId - id;
+                    index++;
+                }
+            }
+
+            if (index != result.shiftChanges()) {
+                throw new IllegalStateException("Index " + index + " does not equal number of changes " + result.shiftChanges());
+            }
+
+            shiftsTag.put("shiftsAt", new IntArrayTag(shiftsAt));
+            shiftsTag.put("shifts", new IntArrayTag(shifts));
+            shiftsTag.put("size", new IntTag(mappings.length));
+            tag.put(key, shiftsTag);
         } else {
             tag.put(key, new IntArrayTag(mappings));
         }
+    }
+
+    private static int approximateChangedFormatSize(final MappingsLoader.MappingsResult result) {
+        // Length of two arrays + more approximate length for extra tags
+        return (result.mappings().length - result.identityMappings()) * 2 + 10;
+    }
+
+    private static int approximateShiftFormatSize(final MappingsLoader.MappingsResult result) {
+        // One entry in two arrays each time the id is not shifted by 1 from the last id + more approximate length for extra tags
+        return result.shiftChanges() * 2 + 10;
     }
 
     private static JsonObject toJsonObject(final JsonArray array) {

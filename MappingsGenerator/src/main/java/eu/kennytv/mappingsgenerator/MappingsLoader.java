@@ -66,6 +66,7 @@ public final class MappingsLoader {
         final Object2IntMap<String> newIdentifierMap = MappingsLoader.arrayToMap(mappedIdentifiers);
         int emptyMappings = 0;
         int identityMappings = 0;
+        int shiftChanges = 0;
         for (int id = 0; id < unmappedIdentifiers.size(); id++) {
             final JsonElement unmappedIdentifier = unmappedIdentifiers.get(id);
             final int mappedId = mapEntry(id, unmappedIdentifier.getAsString(), newIdentifierMap, diffIdentifiers, warnOnMissing);
@@ -77,8 +78,14 @@ public final class MappingsLoader {
             } else {
                 emptyMappings++;
             }
+
+            // Check the first entry/if the shift changed
+            if (id == 0 && mappedId != 0
+                    || id != 0 && mappedId != output[id - 1] + 1) {
+                shiftChanges++;
+            }
         }
-        return new MappingsResult(output, emptyMappings, identityMappings);
+        return new MappingsResult(output, emptyMappings, identityMappings, shiftChanges);
     }
 
     /**
@@ -171,7 +178,8 @@ public final class MappingsLoader {
      * @param mappings         int to int id mappings
      * @param emptyMappings    number of empty (-1) mappings
      * @param identityMappings number of identity mappings
+     * @param shiftChanges     number of shift changes where a mapped id is not the last mapped id + 1
      */
-    record MappingsResult(int[] mappings, int emptyMappings, int identityMappings) {
+    record MappingsResult(int[] mappings, int emptyMappings, int identityMappings, int shiftChanges) {
     }
 }
