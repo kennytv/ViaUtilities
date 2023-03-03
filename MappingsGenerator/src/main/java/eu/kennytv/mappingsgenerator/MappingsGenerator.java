@@ -72,7 +72,7 @@ public final class MappingsGenerator {
                     throw new IllegalArgumentException("Duplicate blockstate id: " + id);
                 }
 
-                final StringBuilder value = new StringBuilder(blocksEntry.getKey());
+                final StringBuilder value = new StringBuilder(removeNamespace(blocksEntry.getKey()));
                 if (stateObject.has("properties")) {
                     value.append('[');
                     final JsonObject properties = stateObject.getAsJsonObject("properties");
@@ -91,45 +91,30 @@ public final class MappingsGenerator {
             }
         }
 
-        final JsonObject blockstates = new JsonObject();
-        final JsonObject blocks = new JsonObject();
+        final JsonArray blockstates = new JsonArray();
+        final JsonArray blocks = new JsonArray();
         viaMappings.add("blockstates", blockstates);
         viaMappings.add("blocks", blocks);
 
         String lastBlock = "";
-        int blockId = 0;
         for (final Map.Entry<Integer, String> entry : blockstatesById.entrySet()) {
-            final String idString = Integer.toString(entry.getKey());
             final String blockstate = entry.getValue();
-            blockstates.addProperty(idString, blockstate);
+            blockstates.add(blockstate);
 
             final String block = blockstate.split("\\[", 2)[0];
             if (!lastBlock.equals(block)) {
                 lastBlock = block;
-                blocks.add(Integer.toString(blockId++), new JsonPrimitive(lastBlock.replace("minecraft:", "")));
+                blocks.add(new JsonPrimitive(lastBlock));
             }
         }
 
         content = new String(Files.readAllBytes(new File("generated/reports/registries.json").toPath()));
         object = gson.fromJson(content, JsonObject.class);
 
-        // Items
-        final Map<Integer, String> itemsById = new TreeMap<>();
-        final JsonObject entries = object.getAsJsonObject("minecraft:item").getAsJsonObject("entries");
-        for (final Map.Entry<String, JsonElement> itemsEntry : entries.entrySet()) {
-            final int protocolId = itemsEntry.getValue().getAsJsonObject().getAsJsonPrimitive("protocol_id").getAsInt();
-            itemsById.put(protocolId, itemsEntry.getKey());
-        }
-
-        final JsonObject items = new JsonObject();
-        viaMappings.add("items", items);
-        for (final Map.Entry<Integer, String> entry : itemsById.entrySet()) {
-            items.addProperty(Integer.toString(entry.getKey()), entry.getValue());
-        }
-
-        addArray(viaMappings, object, "minecraft:sound_event", "sounds", true);
-        addArray(viaMappings, object, "minecraft:particle_type", "particles", true);
-        addArray(viaMappings, object, "minecraft:block_entity_type", "blockentities", true);
+        addArray(viaMappings, object, "minecraft:item", "items");
+        addArray(viaMappings, object, "minecraft:sound_event", "sounds");
+        addArray(viaMappings, object, "minecraft:particle_type", "particles");
+        addArray(viaMappings, object, "minecraft:block_entity_type", "blockentities");
         addArray(viaMappings, object, "minecraft:command_argument_type", "argumenttypes");
         addArray(viaMappings, object, "minecraft:enchantment", "enchantments");
         addArray(viaMappings, object, "minecraft:entity_type", "entities");
@@ -147,10 +132,6 @@ public final class MappingsGenerator {
     }
 
     private static void addArray(final JsonObject mappings, final JsonObject registry, final String registryKey, final String mappingsKey) {
-        addArray(mappings, registry, registryKey, mappingsKey, false);
-    }
-
-    private static void addArray(final JsonObject mappings, final JsonObject registry, final String registryKey, final String mappingsKey, final boolean removeNamespace) {
         if (!registry.has(registryKey)) {
             System.out.println("Ignoring missing registry: " + registryKey);
             return;
@@ -168,7 +149,7 @@ public final class MappingsGenerator {
                 throw new IllegalArgumentException("Duplicate protocol id: " + protocolId + " in " + registryKey);
             }
 
-            keys[protocolId] = removeNamespace ? entry.getKey().replace("minecraft:", "") : entry.getKey();
+            keys[protocolId] = removeNamespace(entry.getKey());
         }
 
         final JsonArray array = new JsonArray();
@@ -176,5 +157,12 @@ public final class MappingsGenerator {
         for (final String key : keys) {
             array.add(new JsonPrimitive(key));
         }
+    }
+
+    private static String removeNamespace(final String key) {
+        if (key.startsWith("minecraft:")) {
+            return key.substring("minecraft:".length());
+        }
+        return key;
     }
 }

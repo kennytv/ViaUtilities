@@ -58,6 +58,7 @@ filters: list[Filter] = [
     Filter("Inventory types", ["net.minecraft.world.inventory.MenuType"], []),
     Filter("Stat types", ["net.minecraft.stats.Stats"], []),
     Filter("Map colors", ["net.minecraft.world.level.material.MaterialColor"], []),
+    Filter("Biomes (for backwards mappings)", ["net.minecraft.world.level.biome.Biomes"], []),
     Filter("RegistrySynchronization (NETWORKABLE_REGISTRIES for registry data)",
            ["net.minecraft.core.RegistrySynchronization"], []),
     Filter("Registry data fields", [],
