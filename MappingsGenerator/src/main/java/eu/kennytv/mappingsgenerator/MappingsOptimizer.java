@@ -28,7 +28,7 @@ import com.github.steveice10.opennbt.tag.builtin.Tag;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import eu.kennytv.mappingsgenerator.util.JsonConverter;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.io.File;
@@ -43,6 +43,8 @@ import org.jetbrains.annotations.Nullable;
 
 public final class MappingsOptimizer {
 
+    public static final File OUTPUT_DIR = new File("output");
+    public static final File MAPPINGS_DIR = new File("mappings");
     private static final Set<String> STANDARD_FIELDS = Set.of("blockstates", "blocks", "items", "sounds", "blockentities", "enchantments", "paintings", "entities", "particles", "argumenttypes", "statistics", "tags");
     private static final int VERSION = 1;
     private static final byte DIRECT_ID = 0;
@@ -52,8 +54,6 @@ public final class MappingsOptimizer {
     private static final String MAPPING_FILE_FORMAT = "mapping-%s.json";
     private static final String OUTPUT_FILE_FORMAT = "mappings-%sto%s.nbt";
     private static final String OUTPUT_IDENTIFIERS_FILE_FORMAT = "identifiers-%s.nbt";
-    private static final File MAPPINGS_DIR = new File("mappings");
-    private static final File OUTPUT_DIR = new File("output");
     private static final Set<String> SAVED_IDENTIFIER_FILES = new HashSet<>();
     private static final boolean RUN_ALL = true;
 
@@ -135,8 +135,9 @@ public final class MappingsOptimizer {
         tag.put("v", new IntTag(VERSION));
         handleUnknownFields(tag, unmappedObject);
 
-        cursedMappings(tag, unmappedObject, mappedObject, "blockstates", 4084);
-        cursedMappings(tag, unmappedObject, mappedObject, "items", unmappedObject.getAsJsonObject("items").size());
+        cursedMappings(tag, unmappedObject, mappedObject, "blockstates", "blockstates", 4084);
+        cursedMappings(tag, unmappedObject, mappedObject, "items", "items", unmappedObject.getAsJsonObject("items").size());
+        cursedMappings(tag, unmappedObject, mappedObject, "legacy_enchantments", "enchantments", 72);
         mappings(tag, unmappedObject, mappedObject, null, true, "sounds");
 
         NBTIO.writeFile(tag, new File(OUTPUT_DIR, "mappings-1.12to1.13.nbt"), false, false);
@@ -145,52 +146,13 @@ public final class MappingsOptimizer {
     private static void handleUnknownFields(final CompoundTag tag, final JsonObject unmappedObject) {
         for (final String key : unmappedObject.keySet()) {
             if (STANDARD_FIELDS.contains(key)) {
-               continue;
+                continue;
             }
 
             System.out.println("========== NON-STANDARD FIELD: " + key + " - writing it to the file without changes ==========");
-            final Tag asTag = toTag(unmappedObject.get(key));
+            final Tag asTag = JsonConverter.toTag(unmappedObject.get(key));
             tag.put(key, asTag);
         }
-    }
-
-    private static Tag toTag(final JsonElement element) {
-        if (element.isJsonObject()) {
-            final JsonObject object = element.getAsJsonObject();
-            final CompoundTag tag = new CompoundTag();
-            for (final Map.Entry<String, JsonElement> entry : object.entrySet()) {
-                tag.put(entry.getKey(), toTag(entry.getValue()));
-            }
-            return tag;
-        } else if (element.isJsonArray()) {
-            final JsonArray array = element.getAsJsonArray();
-            // Special case int arrays
-            if (!array.isEmpty() && array.get(0).isJsonPrimitive() && array.get(0).getAsJsonPrimitive().isNumber()) {
-                final int[] ints = new int[array.size()];
-                for (int i = 0; i < array.size(); i++) {
-                    ints[i] = array.get(i).getAsInt();
-                }
-                return new IntArrayTag(ints);
-            }
-
-            final ListTag tag = new ListTag();
-            for (final JsonElement arrayElement : array) {
-                tag.add(toTag(arrayElement));
-            }
-            return tag;
-        } else if (element.isJsonPrimitive()) {
-            final JsonPrimitive primitive = element.getAsJsonPrimitive();
-            if (primitive.isNumber()) {
-                return new IntTag(primitive.getAsInt());
-            } else if (primitive.isString()) {
-                return new StringTag(primitive.getAsString());
-            } else if (primitive.isBoolean()) {
-                return new ByteTag((byte) (primitive.getAsBoolean() ? 1 : 0));
-            }
-        } else if (element.isJsonNull()) {
-            return new StringTag("null");
-        }
-        throw new IllegalArgumentException("Unknown element " + element.getClass());
     }
 
     /**
@@ -254,34 +216,17 @@ public final class MappingsOptimizer {
         serialize(result, tag, key);
     }
 
-    /**
-     * Stores a list of string identifiers in the given tag.
-     *
-     * @param tag    tag to write to
-     * @param object object to read identifiers from
-     * @param key    to read from and write to
-     */
-    private static void storeIdentifiers(
+    private static void cursedMappings(
             final CompoundTag tag,
-            final JsonObject object,
-            final String key
+            final JsonObject unmappedObject,
+            final JsonObject mappedObject,
+            final String cursedKey,
+            final String key,
+            final int size
     ) {
-        if (!object.has(key) || !object.has(key)) {
-            return;
-        }
-
-        final ListTag list = new ListTag(StringTag.class);
-        for (final JsonElement identifier : object.getAsJsonArray(key)) {
-            list.add(new StringTag(identifier.getAsString()));
-        }
-
-        tag.put(key, list);
-    }
-
-    private static void cursedMappings(final CompoundTag tag, final JsonObject unmappedObject, final JsonObject mappedObject, final String key, final int size) {
         final Int2IntMap map = MappingsLoader.map(
-                unmappedObject.getAsJsonObject(key),
-                toJsonObject(mappedObject.getAsJsonArray(key)),
+                unmappedObject.getAsJsonObject(cursedKey),
+                JsonConverter.toJsonObject(mappedObject.getAsJsonArray(key)),
                 null,
                 true
         );
@@ -346,6 +291,30 @@ public final class MappingsOptimizer {
                 tag.put(tagName, new IntArrayTag(tagIds));
             }
         }
+    }
+
+    /**
+     * Stores a list of string identifiers in the given tag.
+     *
+     * @param tag    tag to write to
+     * @param object object to read identifiers from
+     * @param key    to read from and write to
+     */
+    private static void storeIdentifiers(
+            final CompoundTag tag,
+            final JsonObject object,
+            final String key
+    ) {
+        if (!object.has(key) || !object.has(key)) {
+            return;
+        }
+
+        final ListTag list = new ListTag(StringTag.class);
+        for (final JsonElement identifier : object.getAsJsonArray(key)) {
+            list.add(new StringTag(identifier.getAsString()));
+        }
+
+        tag.put(key, list);
     }
 
     /**
@@ -441,14 +410,5 @@ public final class MappingsOptimizer {
     private static int approximateShiftFormatSize(final MappingsLoader.MappingsResult result) {
         // One entry in two arrays each time the id is not shifted by 1 from the last id + more approximate length for extra tags
         return result.shiftChanges() * 2 + 10;
-    }
-
-    private static JsonObject toJsonObject(final JsonArray array) {
-        final JsonObject object = new JsonObject();
-        for (int i = 0; i < array.size(); i++) {
-            final JsonElement element = array.get(i);
-            object.add(Integer.toString(i), element);
-        }
-        return object;
     }
 }
