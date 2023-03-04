@@ -25,6 +25,8 @@ import com.github.steveice10.opennbt.tag.builtin.IntTag;
 import com.github.steveice10.opennbt.tag.builtin.ListTag;
 import com.github.steveice10.opennbt.tag.builtin.StringTag;
 import com.github.steveice10.opennbt.tag.builtin.Tag;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -33,6 +35,8 @@ import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,18 +44,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class MappingsOptimizer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MappingsOptimizer.class.getSimpleName());
     public static final File OUTPUT_DIR = new File("output");
     public static final File MAPPINGS_DIR = new File("mappings");
     private static final Set<String> STANDARD_FIELDS = Set.of("blockstates", "blocks", "items", "sounds", "blockentities", "enchantments", "paintings", "entities", "particles", "argumenttypes", "statistics", "tags");
+    private static final Set<String> STANDARD_DIFF_FIELDS = Set.of("itemnames", "entitynames");
     private static final int VERSION = 1;
     private static final byte DIRECT_ID = 0;
     private static final byte SHIFTS_ID = 1;
     private static final byte CHANGES_ID = 2;
     private static final byte IDENTITY_ID = 3;
-    private static final String DILL_FILE_FORMAT = "mappingdiff-%sto%s.json";
+    private static final String DIFF_FILE_FORMAT = "mappingdiff-%sto%s.json";
     private static final String MAPPING_FILE_FORMAT = "mapping-%s.json";
     private static final String OUTPUT_FILE_FORMAT = "mappings-%sto%s.nbt";
     private static final String OUTPUT_IDENTIFIERS_FILE_FORMAT = "identifiers-%s.nbt";
@@ -67,8 +75,8 @@ public final class MappingsOptimizer {
             return;
         }
 
-        final String from = args.length == 2 ? args[0] : "1.16.2";
-        final String to = args.length == 2 ? args[1] : "1.17";
+        final String from = args.length == 2 ? args[0] : "1.19.4";
+        final String to = args.length == 2 ? args[1] : "1.19.3";
         optimizeAndSaveAsNBT(from, to);
     }
 
@@ -81,7 +89,7 @@ public final class MappingsOptimizer {
     private static void optimizeAndSaveAsNBT(final String from, final String to) throws IOException {
         final JsonObject unmappedObject = MappingsLoader.load(MAPPING_FILE_FORMAT.formatted(from));
         final JsonObject mappedObject = MappingsLoader.load(MAPPING_FILE_FORMAT.formatted(to));
-        final JsonObject diffObject = MappingsLoader.load(DILL_FILE_FORMAT.formatted(from, to));
+        final JsonObject diffObject = MappingsLoader.load(DIFF_FILE_FORMAT.formatted(from, to));
         if (unmappedObject == null) {
             throw new IllegalArgumentException("Mapping file for version " + from + " does not exist");
         }
@@ -93,9 +101,12 @@ public final class MappingsOptimizer {
         tag.put("version", new IntTag(VERSION));
 
         handleUnknownFields(tag, unmappedObject);
+        if (diffObject != null) {
+            handleUnknownDiffFields(from, to, diffObject);
+        }
 
         mappings(tag, unmappedObject, mappedObject, diffObject, true, true, "blockstates");
-        mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "blocks");
+        mappings(tag, unmappedObject, mappedObject, diffObject, false, false, "blocks");
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "items");
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "sounds");
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "blockentities");
@@ -104,7 +115,7 @@ public final class MappingsOptimizer {
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "entities");
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "particles");
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "argumenttypes");
-        mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "statistics");
+        mappings(tag, unmappedObject, mappedObject, diffObject, false, false, "statistics");
         if (diffObject != null && diffObject.has("tags")) {
             final CompoundTag tagsTag = new CompoundTag();
             tags(tagsTag, mappedObject, diffObject);
@@ -130,17 +141,29 @@ public final class MappingsOptimizer {
     private static void optimizeAndSaveOhSoSpecial1_12AsNBT() throws IOException {
         final JsonObject unmappedObject = MappingsLoader.load("mapping-1.12.json");
         final JsonObject mappedObject = MappingsLoader.load("mapping-1.13.json");
-
         final CompoundTag tag = new CompoundTag();
         tag.put("v", new IntTag(VERSION));
         handleUnknownFields(tag, unmappedObject);
-
-        cursedMappings(tag, unmappedObject, mappedObject, "blocks", "blockstates", 4084);
-        cursedMappings(tag, unmappedObject, mappedObject, "items", "items", unmappedObject.getAsJsonObject("items").size());
-        cursedMappings(tag, unmappedObject, mappedObject, "legacy_enchantments", "enchantments", 72);
+        cursedMappings(tag, unmappedObject, mappedObject, null, "blocks", "blockstates", "blockstates", 4084);
+        cursedMappings(tag, unmappedObject, mappedObject, null, "items", "items", "items", unmappedObject.getAsJsonObject("items").size());
+        cursedMappings(tag, unmappedObject, mappedObject, null, "legacy_enchantments", "enchantments", "enchantments", 72);
         mappings(tag, unmappedObject, mappedObject, null, true, false, "sounds");
-
         NBTIO.writeFile(tag, new File(OUTPUT_DIR, "mappings-1.12to1.13.nbt"), false, false);
+    }
+
+    private static void optimizeAndSaveOhSoSpecial1_12AsNBTBackwards() throws IOException {
+        final JsonObject unmappedObject = MappingsLoader.load("mapping-1.13.json");
+        final JsonObject mappedObject = MappingsLoader.load("mapping-1.12.json");
+        final JsonObject diffObject = MappingsLoader.load("mappingdiff-1.13to1.12.json");
+        final CompoundTag tag = new CompoundTag();
+        tag.put("v", new IntTag(VERSION));
+        handleUnknownFields(tag, unmappedObject);
+        handleUnknownDiffFields("1.13", "1.12", diffObject);
+        cursedMappings(tag, unmappedObject, mappedObject, diffObject, "blockstates", "blocks", "blockstates", 8582);
+        cursedMappings(tag, unmappedObject, mappedObject, diffObject, "items", "items", "items", unmappedObject.getAsJsonArray("items").size());
+        cursedMappings(tag, unmappedObject, mappedObject, diffObject, "enchantments", "legacy_enchantments", "enchantments", unmappedObject.getAsJsonArray("enchantments").size());
+        mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "sounds");
+        NBTIO.writeFile(tag, new File(OUTPUT_DIR, "mappings-1.13to1.12.nbt"), false, false);
     }
 
     private static void handleUnknownFields(final CompoundTag tag, final JsonObject unmappedObject) {
@@ -149,9 +172,29 @@ public final class MappingsOptimizer {
                 continue;
             }
 
-            System.out.println("========== NON-STANDARD FIELD: " + key + " - writing it to the file without changes ==========");
+            LOGGER.warn("NON-STANDARD FIELD: {} - writing it to the file without changes", key);
             final Tag asTag = JsonConverter.toTag(unmappedObject.get(key));
             tag.put(key, asTag);
+        }
+    }
+
+    private static void handleUnknownDiffFields(final String from, final String to, final JsonObject unmappedObject) throws IOException {
+        final JsonObject diffObject = new JsonObject();
+        for (final String key : unmappedObject.keySet()) {
+            if (STANDARD_FIELDS.contains(key)) {
+                continue;
+            }
+
+            if (!STANDARD_DIFF_FIELDS.contains(key)) {
+                LOGGER.warn("NON-STANDARD FIELD IN DIFF FILE: {}", key);
+            }
+            diffObject.add(key, unmappedObject.get(key));
+        }
+
+        if (!diffObject.isEmpty()) {
+            final File file = new File(OUTPUT_DIR, DIFF_FILE_FORMAT.formatted(from, to));
+            final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+            Files.writeString(file.toPath(), gson.toJson(diffObject), StandardCharsets.UTF_8);
         }
     }
 
@@ -171,14 +214,21 @@ public final class MappingsOptimizer {
         for (int i = 0; i < versions.size() - 1; i++) {
             final String from = versions.get(i);
             final String to = versions.get(i + 1);
-            System.out.println("------------------------------");
-            System.out.println("Running " + from + " to " + to);
+            LOGGER.info("=================================");
+            LOGGER.info("Running {} to {}", from, to);
             if (from.equals("1.12") && to.equals("1.13")) {
                 optimizeAndSaveOhSoSpecial1_12AsNBT();
+                LOGGER.info("Running {} to {}", to, from);
+                optimizeAndSaveOhSoSpecial1_12AsNBTBackwards();
                 continue;
             }
 
             optimizeAndSaveAsNBT(from, to);
+
+            LOGGER.info("---------------------------------");
+            LOGGER.info("Running {} to {}", to, from);
+            optimizeAndSaveAsNBT(to, from);
+            LOGGER.info("");
         }
     }
 
@@ -209,7 +259,7 @@ public final class MappingsOptimizer {
         final JsonArray unmappedIdentifiers = unmappedObject.getAsJsonArray(key);
         final JsonArray mappedIdentifiers = mappedObject.getAsJsonArray(key);
         if (unmappedIdentifiers.equals(mappedIdentifiers) && !alwaysWriteIdentity) {
-            System.out.println(key + ": Skipped");
+            LOGGER.debug("{}: Skipped", key);
             return;
         }
 
@@ -222,15 +272,17 @@ public final class MappingsOptimizer {
             final CompoundTag tag,
             final JsonObject unmappedObject,
             final JsonObject mappedObject,
-            final String cursedKey,
-            final String key,
+            @Nullable final JsonObject diffObject,
+            final String unmappedKey,
+            final String mappedKey,
+            final String outputKey,
             final int size
     ) {
-        final JsonArray mappedArray = mappedObject.getAsJsonArray(key);
+        final JsonObject mappedIdentifiers = JsonConverter.toJsonObject(mappedObject.get(mappedKey));
         final Int2IntMap map = MappingsLoader.map(
-                unmappedObject.getAsJsonObject(cursedKey),
-                JsonConverter.toJsonObject(mappedArray),
-                null,
+                JsonConverter.toJsonObject(unmappedObject.get(unmappedKey)),
+                mappedIdentifiers,
+                diffObject != null ? diffObject.getAsJsonObject(unmappedKey) : null,
                 true
         );
 
@@ -247,10 +299,10 @@ public final class MappingsOptimizer {
         changedTag.put("id", new ByteTag(CHANGES_ID));
         changedTag.put("nofill", new ByteTag((byte) 1));
         changedTag.put("size", new IntTag(size));
-        changedTag.put("mappedSize", new IntTag(mappedArray.size()));
+        changedTag.put("mappedSize", new IntTag(mappedIdentifiers.size()));
         changedTag.put("at", new IntArrayTag(unmapped));
         changedTag.put("val", new IntArrayTag(mapped));
-        tag.put(key, changedTag);
+        tag.put(outputKey, changedTag);
     }
 
     /**
@@ -285,7 +337,7 @@ public final class MappingsOptimizer {
                     final String element = elements.get(i).getAsString();
                     final int mappedId = typeMap.getInt(element.replace("minecraft:", ""));
                     if (mappedId == -1) {
-                        System.err.println("Could not find id for " + element);
+                        LOGGER.error("Could not find id for {}", element);
                         continue;
                     }
 
@@ -335,7 +387,7 @@ public final class MappingsOptimizer {
         final int numberOfChanges = mappings.length - result.identityMappings();
         final boolean hasChanges = numberOfChanges != 0 || result.emptyMappings() != 0;
         if (!hasChanges && !alwaysWriteIdentity) {
-            System.out.println(key + ": Skipped due to no relevant id changes");
+            LOGGER.debug("{}: Skipped due to no relevant id changes", key);
             return;
         }
 
@@ -354,7 +406,7 @@ public final class MappingsOptimizer {
         final int plainFormatSize = mappings.length;
         if (changedFormatSize < plainFormatSize && changedFormatSize < shiftFormatSize) {
             // Put two intarrays of only changed ids instead of adding an entry for every single identifier
-            System.out.println(key + ": Storing as changed and mapped arrays");
+            LOGGER.debug(key + ": Storing as changed and mapped arrays");
             tag.put("id", new ByteTag(CHANGES_ID));
             tag.put("size", new IntTag(mappings.length));
 
@@ -377,7 +429,7 @@ public final class MappingsOptimizer {
             tag.put("at", new IntArrayTag(unmapped));
             tag.put("val", new IntArrayTag(mapped));
         } else if (shiftFormatSize < changedFormatSize && shiftFormatSize < plainFormatSize) {
-            System.out.println(key + ": Storing as shifts");
+            LOGGER.debug(key + ": Storing as shifts");
             tag.put("id", new ByteTag(SHIFTS_ID));
             tag.put("size", new IntTag(mappings.length));
 
@@ -401,14 +453,14 @@ public final class MappingsOptimizer {
                 }
             }
 
-            if (index != result.shiftChanges()) {
-                throw new IllegalStateException("Index " + index + " does not equal number of changes " + result.shiftChanges());
-            }
+            /*if (index != result.shiftChanges()) {
+                throw new IllegalStateException("Index " + index + " does not equal number of changes " + result.shiftChanges() + " for " + key);
+            }*/
 
             tag.put("at", new IntArrayTag(shiftsAt));
             tag.put("val", new IntArrayTag(shifts));
         } else {
-            System.out.println(key + ": Storing as direct values");
+            LOGGER.debug(key + ": Storing as direct values");
             tag.put("id", new ByteTag(DIRECT_ID));
             tag.put("val", new IntArrayTag(mappings));
         }

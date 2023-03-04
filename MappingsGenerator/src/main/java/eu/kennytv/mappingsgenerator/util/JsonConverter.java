@@ -79,4 +79,14 @@ public final class JsonConverter {
         }
         return object;
     }
+
+    public static JsonObject toJsonObject(final JsonElement element) {
+        if (element.isJsonObject()) {
+            return element.getAsJsonObject();
+        } else if (element.isJsonArray()) {
+            return toJsonObject(element.getAsJsonArray());
+        } else {
+            throw new UnsupportedOperationException();
+        }
+    }
 }

@@ -31,10 +31,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class MappingsLoader {
 
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+    private static final Logger LOGGER = LoggerFactory.getLogger(MappingsLoader.class.getSimpleName());
 
     /**
      * Loads and return the json mappings file.
@@ -121,23 +124,50 @@ public final class MappingsLoader {
      */
     private static int mapEntry(final int id, final String value, final Object2IntMap<String> mappedIdentifiers, @Nullable final JsonObject diffIdentifiers, final boolean warnOnMissing) {
         int mappedId = mappedIdentifiers.getInt(value);
-        if (mappedId == -1) {
-            // Search in diff mappings
-            if (diffIdentifiers != null) {
-                JsonElement diffElement = diffIdentifiers.get(value);
-                if (diffElement != null || (diffElement = diffIdentifiers.get(Integer.toString(id))) != null) {
-                    final String mappedName = diffElement.getAsString();
-                    if (mappedName.isEmpty()) {
-                        return -1; // "empty" remaps without warnings
-                    }
+        if (mappedId != -1) {
+            return mappedId;
+        }
 
-                    mappedId = mappedIdentifiers.getInt(mappedName);
+        final int dataIndex;
+        if (diffIdentifiers == null) {
+            if (warnOnMissing) {
+                LOGGER.warn("No key/diff file for {} :( ", value);
+            }
+            return -1;
+        }
 
-                }
+        // Search in diff mappings
+        JsonElement diffElement = diffIdentifiers.get(value);
+        if (diffElement != null || (diffElement = diffIdentifiers.get(Integer.toString(id))) != null) {
+            // Direct match by id or value
+            final String mappedName = diffElement.getAsString();
+            if (mappedName.isEmpty()) {
+                return -1; // "empty" remaps without warnings
             }
-            if (mappedId == -1 && warnOnMissing) {
-                System.out.println("No key for " + value + " :( ");
+            if (mappedName.startsWith("id:")) {
+                // Special case for cursed mappings
+                return Integer.parseInt(mappedName.substring("id:".length()));
             }
+
+
+            mappedId = mappedIdentifiers.getInt(mappedName);
+        } else if ((dataIndex = value.indexOf('[')) != -1 && (diffElement = diffIdentifiers.getAsJsonPrimitive(value.substring(0, dataIndex))) != null) {
+            // Check for wildcard mappings
+            String mappedName = diffElement.getAsString();
+            if (mappedName.isEmpty()) {
+                return -1;
+            }
+
+            // Keep original properties if value ends with [
+            if (mappedName.endsWith("[")) {
+                mappedName += value.substring(dataIndex + 1);
+            }
+
+            mappedId = mappedIdentifiers.getInt(mappedName);
+        }
+
+        if (mappedId == -1 && warnOnMissing) {
+            LOGGER.warn("No key for {} :( ", value);
         }
         return mappedId;
     }
