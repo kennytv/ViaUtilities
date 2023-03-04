@@ -25,20 +25,17 @@ import com.github.steveice10.opennbt.tag.builtin.IntTag;
 import com.github.steveice10.opennbt.tag.builtin.ListTag;
 import com.github.steveice10.opennbt.tag.builtin.StringTag;
 import com.github.steveice10.opennbt.tag.builtin.Tag;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import eu.kennytv.mappingsgenerator.util.JsonConverter;
+import eu.kennytv.mappingsgenerator.util.Version;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +48,7 @@ public final class MappingsOptimizer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MappingsOptimizer.class.getSimpleName());
     public static final File OUTPUT_DIR = new File("output");
+    public static final File OUTPUT_BACKWARDS_DIR = new File(OUTPUT_DIR, "backwards");
     public static final File MAPPINGS_DIR = new File("mappings");
     private static final Set<String> STANDARD_FIELDS = Set.of("blockstates", "blocks", "items", "sounds", "blockentities", "enchantments", "paintings", "entities", "particles", "argumenttypes", "statistics", "tags");
     private static final Set<String> STANDARD_DIFF_FIELDS = Set.of("itemnames", "entitynames");
@@ -75,9 +73,9 @@ public final class MappingsOptimizer {
             return;
         }
 
-        final String from = args.length == 2 ? args[0] : "1.19.4";
-        final String to = args.length == 2 ? args[1] : "1.19.3";
-        optimizeAndSaveAsNBT(from, to);
+        final String from = args.length == 2 ? args[0] : "1.12";
+        final String to = args.length == 2 ? args[1] : "1.11";
+        optimizeAndSaveAsNBT(from, to, OUTPUT_DIR);
     }
 
     /**
@@ -86,7 +84,7 @@ public final class MappingsOptimizer {
      * @param from version to map from
      * @param to   version to map to
      */
-    private static void optimizeAndSaveAsNBT(final String from, final String to) throws IOException {
+    private static void optimizeAndSaveAsNBT(final String from, final String to, final File outputDir) throws IOException {
         final JsonObject unmappedObject = MappingsLoader.load(MAPPING_FILE_FORMAT.formatted(from));
         final JsonObject mappedObject = MappingsLoader.load(MAPPING_FILE_FORMAT.formatted(to));
         final JsonObject diffObject = MappingsLoader.load(DIFF_FILE_FORMAT.formatted(from, to));
@@ -101,9 +99,6 @@ public final class MappingsOptimizer {
         tag.put("version", new IntTag(VERSION));
 
         handleUnknownFields(tag, unmappedObject);
-        if (diffObject != null) {
-            handleUnknownDiffFields(from, to, diffObject);
-        }
 
         mappings(tag, unmappedObject, mappedObject, diffObject, true, true, "blockstates");
         mappings(tag, unmappedObject, mappedObject, diffObject, false, false, "blocks");
@@ -116,12 +111,20 @@ public final class MappingsOptimizer {
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "particles");
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "argumenttypes");
         mappings(tag, unmappedObject, mappedObject, diffObject, false, false, "statistics");
-        if (diffObject != null && diffObject.has("tags")) {
-            final CompoundTag tagsTag = new CompoundTag();
-            tags(tagsTag, mappedObject, diffObject);
-            tag.put("tags", tagsTag);
+        if (diffObject != null) {
+            names(tag, unmappedObject, diffObject, "items", "itemnames");
+            fullNames(tag, diffObject, "entitynames", "entitynames");
+            if (outputDir == OUTPUT_BACKWARDS_DIR) { // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+                fullNames(tag, diffObject, "sounds", "soundnames");
+            }
+            if (diffObject.has("tags")) {
+                final CompoundTag tagsTag = new CompoundTag();
+                tags(tagsTag, mappedObject, diffObject);
+                tag.put("tags", tagsTag);
+            }
         }
-        NBTIO.writeFile(tag, new File(OUTPUT_DIR, OUTPUT_FILE_FORMAT.formatted(from, to)), false, false);
+
+        NBTIO.writeFile(tag, new File(outputDir, OUTPUT_FILE_FORMAT.formatted(from, to)), false, false);
 
         // Save full identifiers to a separate file per version
         saveIdentifierFiles(from, unmappedObject);
@@ -158,12 +161,14 @@ public final class MappingsOptimizer {
         final CompoundTag tag = new CompoundTag();
         tag.put("v", new IntTag(VERSION));
         handleUnknownFields(tag, unmappedObject);
-        handleUnknownDiffFields("1.13", "1.12", diffObject);
         cursedMappings(tag, unmappedObject, mappedObject, diffObject, "blockstates", "blocks", "blockstates", 8582);
         cursedMappings(tag, unmappedObject, mappedObject, diffObject, "items", "items", "items", unmappedObject.getAsJsonArray("items").size());
         cursedMappings(tag, unmappedObject, mappedObject, diffObject, "enchantments", "legacy_enchantments", "enchantments", unmappedObject.getAsJsonArray("enchantments").size());
+        names(tag, unmappedObject, diffObject, "items", "itemnames");
+        fullNames(tag, diffObject, "entitynames", "entitynames");
+        fullNames(tag, diffObject, "sounds", "soundnames");
         mappings(tag, unmappedObject, mappedObject, diffObject, true, false, "sounds");
-        NBTIO.writeFile(tag, new File(OUTPUT_DIR, "mappings-1.13to1.12.nbt"), false, false);
+        NBTIO.writeFile(tag, new File(OUTPUT_BACKWARDS_DIR, "mappings-1.13to1.12.nbt"), false, false);
     }
 
     private static void handleUnknownFields(final CompoundTag tag, final JsonObject unmappedObject) {
@@ -175,26 +180,6 @@ public final class MappingsOptimizer {
             LOGGER.warn("NON-STANDARD FIELD: {} - writing it to the file without changes", key);
             final Tag asTag = JsonConverter.toTag(unmappedObject.get(key));
             tag.put(key, asTag);
-        }
-    }
-
-    private static void handleUnknownDiffFields(final String from, final String to, final JsonObject unmappedObject) throws IOException {
-        final JsonObject diffObject = new JsonObject();
-        for (final String key : unmappedObject.keySet()) {
-            if (STANDARD_FIELDS.contains(key)) {
-                continue;
-            }
-
-            if (!STANDARD_DIFF_FIELDS.contains(key)) {
-                LOGGER.warn("NON-STANDARD FIELD IN DIFF FILE: {}", key);
-            }
-            diffObject.add(key, unmappedObject.get(key));
-        }
-
-        if (!diffObject.isEmpty()) {
-            final File file = new File(OUTPUT_DIR, DIFF_FILE_FORMAT.formatted(from, to));
-            final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-            Files.writeString(file.toPath(), gson.toJson(diffObject), StandardCharsets.UTF_8);
         }
     }
 
@@ -210,11 +195,11 @@ public final class MappingsOptimizer {
             }
         }
 
-        Collections.sort(versions);
+        versions.sort(Comparator.comparing(Version::new));
         for (int i = 0; i < versions.size() - 1; i++) {
             final String from = versions.get(i);
             final String to = versions.get(i + 1);
-            LOGGER.info("=================================");
+            LOGGER.info("=============================");
             LOGGER.info("Running {} to {}", from, to);
             if (from.equals("1.12") && to.equals("1.13")) {
                 optimizeAndSaveOhSoSpecial1_12AsNBT();
@@ -223,11 +208,11 @@ public final class MappingsOptimizer {
                 continue;
             }
 
-            optimizeAndSaveAsNBT(from, to);
+            optimizeAndSaveAsNBT(from, to, OUTPUT_DIR);
 
-            LOGGER.info("---------------------------------");
+            LOGGER.info("-----------------------------");
             LOGGER.info("Running {} to {}", to, from);
-            optimizeAndSaveAsNBT(to, from);
+            optimizeAndSaveAsNBT(to, from, OUTPUT_BACKWARDS_DIR);
             LOGGER.info("");
         }
     }
@@ -303,6 +288,47 @@ public final class MappingsOptimizer {
         changedTag.put("at", new IntArrayTag(unmapped));
         changedTag.put("val", new IntArrayTag(mapped));
         tag.put(outputKey, changedTag);
+    }
+
+    private static void names(
+            final CompoundTag data,
+            final JsonObject object,
+            final JsonObject diffObject,
+            final String key,
+            final String namesKey) {
+        if (!object.has(key) || !diffObject.has(namesKey)) {
+            return;
+        }
+
+        final Object2IntMap<String> identifierMap = MappingsLoader.arrayToMap(object.getAsJsonArray(key));
+        final JsonObject nameMappings = diffObject.getAsJsonObject(namesKey);
+        final CompoundTag tag = new CompoundTag();
+        data.put(namesKey, tag);
+
+        for (final Map.Entry<String, JsonElement> entry : nameMappings.entrySet()) {
+            // Would be smaller as two arrays, but /shrug
+            final String idAsString = Integer.toString(identifierMap.getInt(entry.getKey()));
+            tag.put(idAsString, new StringTag(entry.getValue().getAsString()));
+        }
+    }
+
+    private static void fullNames(
+            final CompoundTag data,
+            final JsonObject diffObject,
+            final String key,
+            final String outputKey
+    ) {
+        if (!diffObject.has(key)) {
+            return;
+        }
+
+        final JsonObject nameMappings = diffObject.getAsJsonObject(key);
+        final CompoundTag tag = new CompoundTag();
+        data.put(outputKey, tag);
+
+        for (final Map.Entry<String, JsonElement> entry : nameMappings.entrySet()) {
+            tag.put(entry.getKey(), new StringTag(entry.getValue().getAsString()));
+        }
     }
 
     /**
@@ -406,7 +432,7 @@ public final class MappingsOptimizer {
         final int plainFormatSize = mappings.length;
         if (changedFormatSize < plainFormatSize && changedFormatSize < shiftFormatSize) {
             // Put two intarrays of only changed ids instead of adding an entry for every single identifier
-            LOGGER.debug(key + ": Storing as changed and mapped arrays");
+            LOGGER.debug("{}: Storing as changed and mapped arrays", key);
             tag.put("id", new ByteTag(CHANGES_ID));
             tag.put("size", new IntTag(mappings.length));
 
@@ -429,18 +455,18 @@ public final class MappingsOptimizer {
             tag.put("at", new IntArrayTag(unmapped));
             tag.put("val", new IntArrayTag(mapped));
         } else if (shiftFormatSize < changedFormatSize && shiftFormatSize < plainFormatSize) {
-            LOGGER.debug(key + ": Storing as shifts");
+            LOGGER.debug("{}: Storing as shifts", key);
             tag.put("id", new ByteTag(SHIFTS_ID));
             tag.put("size", new IntTag(mappings.length));
 
             final int[] shiftsAt = new int[result.shiftChanges()];
-            final int[] shifts = new int[result.shiftChanges()];
+            final int[] shiftsTo = new int[result.shiftChanges()];
 
             int index = 0;
             // Check the first entry
             if (mappings[0] != 0) {
                 shiftsAt[0] = 0;
-                shifts[0] = mappings[0];
+                shiftsTo[0] = mappings[0];
                 index++;
             }
 
@@ -448,19 +474,19 @@ public final class MappingsOptimizer {
                 final int mappedId = mappings[id];
                 if (mappedId != mappings[id - 1] + 1) {
                     shiftsAt[index] = id;
-                    shifts[index] = mappedId - id;
+                    shiftsTo[index] = mappedId;
                     index++;
                 }
             }
 
-            /*if (index != result.shiftChanges()) {
+            if (index != result.shiftChanges()) {
                 throw new IllegalStateException("Index " + index + " does not equal number of changes " + result.shiftChanges() + " for " + key);
-            }*/
+            }
 
             tag.put("at", new IntArrayTag(shiftsAt));
-            tag.put("val", new IntArrayTag(shifts));
+            tag.put("to", new IntArrayTag(shiftsTo));
         } else {
-            LOGGER.debug(key + ": Storing as direct values");
+            LOGGER.debug("{}: Storing as direct values", key);
             tag.put("id", new ByteTag(DIRECT_ID));
             tag.put("val", new IntArrayTag(mappings));
         }

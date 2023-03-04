@@ -46,7 +46,7 @@ public final class MappingsLoader {
      * @return the mappings file as a JsonObject, or null if it does not exist
      */
     public static @Nullable JsonObject load(final String name) throws IOException {
-        final File file = new File("mappings", name);
+        final File file = new File(MappingsOptimizer.MAPPINGS_DIR, name);
         if (!file.exists()) {
             return null;
         }
