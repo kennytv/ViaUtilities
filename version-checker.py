@@ -5,8 +5,7 @@ import json
 import wget
 import subprocess
 import os
-import shutil
-from lib import zips
+from git import Repo
 from lib import args
 
 
@@ -27,6 +26,14 @@ def saveToFile(release: str, snapshot: str):
     versionsFile.write(release + "\n")
     versionsFile.write(snapshot)
     versionsFile.close()
+
+
+def push(message: str):
+    repo = Repo("")
+    repo.git.add(update=True)
+    repo.index.commit(message)
+    origin = repo.remote(name='origin')
+    origin.push()
 
 
 def processMappings(jsonObject, oldVersion: str, version: str):
@@ -52,16 +59,32 @@ def processMappings(jsonObject, oldVersion: str, version: str):
         print("\n=== Downloading server...", flush=True)
         wget.download(serverUrl, serverFile)
 
-    # Via mapping
-    if os.path.isfile("mappings/mapping-" + version + ".json"):
-        print("Via mapping file already present!")
-    else:
-        print("\n=== Starting server mapping generator...\n", flush=True)
-        subprocess.call(["java", "-jar", "MappingsGenerator-2.0.jar", "versions/server-" + version + ".jar", version])
-        shutil.rmtree('logs')
+    # Via mappings
+    with open("next_release.txt", 'r') as versionsFile:
+        nextRelease: str = versionsFile.read()
+    with open("versions.txt", "r") as versionsFile:
+        oldRelease: str = versionsFile.read().split("\n")[0]
+
+    print("\n=== Running mappings generator...\n", flush=True)
+    os.system(".\\prepare-mappings-generator.sh " + version)
+    os.chdir("Mappings")
+    subprocess.call(["java", "-jar", "MappingsGenerator.jar", "server.jar", nextRelease])
+    subprocess.call(
+        ["java", "-cp", "MappingsGenerator.jar", "com.viaversion.mappingsgenerator.MappingsOptimizer", oldRelease,
+         nextRelease, "--generateDiffStubs"])
+    subprocess.call(
+        ["java", "-cp", "MappingsGenerator.jar", "com.viaversion.mappingsgenerator.MappingsOptimizer", nextRelease,
+         oldRelease, "--generateDiffStubs"])
+
+    try:
+        push("Update: " + version)
+    except:
+        print("Error pushing changes to the Mappings repo :(")
+
+    os.chdir("..")
 
     # Burger
-    vitrineFile = "Burger\\vitrine\\" + oldVersion + "_" + version + ".html"
+    vitrineFile = "Burger\\vitrine\\{0}_{1}.html".format(oldVersion, version)
     if oldVersion == version:
         # Only dump the one version
         if not os.path.isfile("Burger\\out\\" + version + ".json"):
@@ -70,16 +93,8 @@ def processMappings(jsonObject, oldVersion: str, version: str):
         print("Burger/Vitrine file already present!")
     else:
         print("\n=== Generating Burger mapping diff...\n", flush=True)
-        os.system(".\\burger.sh " + oldVersion + " " + version)
+        os.system(".\\burger.sh {0} {1}".format(oldVersion, version))
         os.system(".\\" + vitrineFile)
-
-    # Minimize client/server jar
-    if not args.hasArg("noMinimize", 'm'):
-        print("\nMinimizing client/server jar file...", flush=True)
-        zips.delete_from_zip_file(clientFilePath,
-                                  "^(assets/realms|assets/minecraft/textures|assets/minecraft/models|assets/minecraft/blockstates|assets/minecraft/shaders)\/")
-        zips.delete_from_zip_file(serverFile,
-                                  "^(data|assets|META-INF|com/google|io|it|javax|org|joptsimple|oshi|com/sun)\/")
 
     # Sources export
     if args.hasArg("generateSources", 'v'):
@@ -87,7 +102,7 @@ def processMappings(jsonObject, oldVersion: str, version: str):
         os.system("py sources.py --decompile --push --ver " + version)
         os.system("py diff-checker.py --output diffs/" + version + ".patch")
 
-    if args.hasArg("generateSourcesEnigma", 's'):
+    if args.hasArg("generateSourcesEnigma"):
         print("\n=== Generating sources with Enigma...\n", flush=True)
         clientMappingsUrl: str = jsonObject["downloads"]["client_mappings"]["url"]
         serverMappingsUrl: str = jsonObject["downloads"]["server_mappings"]["url"]
@@ -118,15 +133,6 @@ def downloadMappings(oldVersion: str, version: str, url: str):
 
 
 def check():
-    try:
-        with open("versions.txt", "r") as versionsFile:
-            oldVersions: list[str] = versionsFile.read().split("\n")
-        oldRelease: str = oldVersions[0]
-        oldSnapshot: str = oldVersions[1]
-    except IOError:
-        oldRelease = ""
-        oldSnapshot = ""
-
     attempt: int = 0
     while True:
         attempt += 1
@@ -138,6 +144,18 @@ def check():
         latestRelease: str = latest["release"]
         latestSnapshot: str = latest["snapshot"]
 
+        # Load last versions from file
+        try:
+            with open("versions.txt", "r") as versionsFile:
+                oldVersions: list[str] = versionsFile.read().split("\n")
+            oldRelease: str = oldVersions[0]
+            oldSnapshot: str = oldVersions[1]
+        except IOError:
+            oldRelease = latestRelease
+            oldSnapshot = latestSnapshot
+            saveToFile(oldRelease, latestSnapshot)
+
+        # Check for a new release or snapshot
         if oldRelease != latestRelease:
             print("A new release has been published:", latestRelease, flush=True)
             old: str = oldRelease
@@ -156,6 +174,7 @@ def check():
             time.sleep(20)
             continue
 
+        # Look for version data of the new release
         versionData = None
         for entry in jsonObject["versions"]:
             if entry["id"] == new:
