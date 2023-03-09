@@ -60,9 +60,9 @@ def processMappings(jsonObject, oldVersion: str, version: str):
         wget.download(serverUrl, serverFile)
 
     # Via mappings
-    with open("next_release.txt", 'r') as versionsFile:
-        nextRelease: str = versionsFile.read()
-    with open("versions.txt", "r") as versionsFile:
+    with open("next_release.txt", 'r') as versionFile:
+        nextRelease: str = versionFile.read()
+    with open("versions.txt", 'r') as versionsFile:
         oldRelease: str = versionsFile.read().split("\n")[0]
 
     print("\n=== Running mappings generator...\n", flush=True)
@@ -75,6 +75,9 @@ def processMappings(jsonObject, oldVersion: str, version: str):
     subprocess.call(
         ["java", "-cp", "MappingsGenerator.jar", "com.viaversion.mappingsgenerator.MappingsOptimizer", nextRelease,
          oldRelease, "--generateDiffStubs"])
+
+    with open("last_snapshot.txt", 'w') as versionFile:
+        versionFile.write(version)
 
     try:
         push("Update: " + version)
