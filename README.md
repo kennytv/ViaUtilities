@@ -8,7 +8,7 @@ Various automated utility tools for Via updates.
 * (git) bash
 
 ## Preparation
-Run `git submodules update --init`
+Run `git submodule update --init`
 
 ## Usage
 - `py version-checker.py` is the main file, subsequently calling the other scripts. It searches for new snapshots and releases. Once one is found, the server will be downloaded its mappings will be generated.
