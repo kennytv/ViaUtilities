@@ -1,0 +1,3 @@
+[submodule "Mappings"]
+	path = Mappings
+	url = git@github.com:ViaVersion/Mappings.git
