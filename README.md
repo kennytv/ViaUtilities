@@ -4,7 +4,7 @@ Various automated utility tools for Via updates.
 ## Dependencies
 * At least Java 17
 * Python with six, jawa, and wget packages
-* git
+* GitPython
 * (git) bash
 
 ## Preparation
