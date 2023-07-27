@@ -7,22 +7,22 @@ from lib import args
 class Filter:
     results: dict[str, list[str]]
 
-    def __init__(self, name: str, filesToDiff: list[str], lookForDiff: list[str]):
+    def __init__(self, name: str, files_to_diff: list[str], look_for_diff: list[str]):
         """
         Creates a filter with the given files and string matches.
         All files but .java files need their file endings specified and have dir separators instead of dots.
 
         :param name: name of the filter
-        :param filesToDiff: qualified file names to always include the full diff of
-        :param lookForDiff: string contents to match blobs for
+        :param files_to_diff: qualified file names to always include the full diff of
+        :param look_for_diff: string contents to match blobs for
         """
         self.name = name
-        self.filesToDiff = filesToDiff
-        self.lookForDiff = lookForDiff
+        self.filesToDiff = files_to_diff
+        self.lookForDiff = look_for_diff
         self.results = {}
 
 
-bufMethods: list[str] = [
+buf_methods: list[str] = [
     "readWithCodec", "writeWithCodec", "readJsonWithCodec", "writeJsonWithCodec", "writeId", "readById",
     "readCollection", "writeCollection", "readList", "readIntIdList", "writeIntIdList", "readMap", "writeMap",
     "readWithCount", "writeEnumSet", "readEnumSet", "writeOptional", "readOptional", "readNullable",
@@ -44,11 +44,11 @@ bufMethods: list[str] = [
     "writeShortLE", "writeMedium", "writeMediumLE", "writeInt", "writeIntLE", "writeLong", "writeLongLE",
     "writeChar", "writeFloat", "writeDouble", "writeBytes", "writeZero", "writeCharSequence"
 ]
-for i in range(len(bufMethods)):
-    bufMethods[i] = "." + bufMethods[i] + "("
+for i in range(len(buf_methods)):
+    buf_methods[i] = "." + buf_methods[i] + "("
 
 filters: list[Filter] = [
-    Filter("Packets", [], bufMethods),
+    Filter("Packets", [], buf_methods),
     Filter("Entity type", ["net.minecraft.world.entity.EntityType"], []),
     Filter("Entity data (for metadata)", ["net.minecraft.network.syncher.SynchedEntityData"], ["EntityDataAccessor<"]),
     Filter("Entity pose (for metadata)", ["net.minecraft.world.entity.Pose"], []),
@@ -73,15 +73,15 @@ filters: list[Filter] = [
 ]
 
 # Output argument to dump the output into
-toFile: str | None = None
+to_file: str | None = None
 if args.hasArg("output"):
-    toFile = args.getArg("output")
+    to_file = args.getArg("output")
 
-currentDir: str = os.getcwd()
+current_dir: str = os.getcwd()
 os.chdir(os.path.expanduser("~\\IdeaProjects\\MCSources\\"))  # HMMMMMMMMMMM
 
 
-def hasContainsMatch(blob: str, f: Filter) -> bool:
+def has_contains_match(blob: str, f: Filter) -> bool:
     """
     Returns whether the given blob contains one of the filter texts.
 
@@ -95,35 +95,35 @@ def hasContainsMatch(blob: str, f: Filter) -> bool:
     return False
 
 
-def processHunk(file: str, hunk: str, additionBlob: str):
+def process_hunk(file: str, hunk: str, addition_blob: str):
     if file is None or hunk is None:
         return
 
     for f in filters:
-        if file in f.filesToDiff or hasContainsMatch(additionBlob, f):
+        if file in f.filesToDiff or has_contains_match(addition_blob, f):
             if file not in f.results:
                 f.results[file] = [hunk]
             elif hunk not in f.results[file]:
                 f.results[file].append(hunk)
 
 
-def anyDiffersInChat():
+def any_differs_in_chat():
     pp: Popen[bytes] = Popen("git show", stdout=PIPE, stderr=PIPE)
     stdout, stderr = pp.communicate()
-    diffLines: list[str] = stdout.decode("utf-8").splitlines()
+    diff_lines: list[str] = stdout.decode("utf-8").splitlines()
 
-    currentHunk = None
-    currentHunkChanges = None
-    currentFile = None
+    current_hunk = None
+    current_hunk_changes = None
+    current_file = None
 
     # todo Check if this works on created/deleted files
-    for line in diffLines:
+    for line in diff_lines:
         if line.startswith("@@ "):
             # Beginning of a hunk
-            processHunk(currentFile, currentHunk, currentHunkChanges)
+            process_hunk(current_file, current_hunk, current_hunk_changes)
 
-            currentHunk = line + "\n"
-            currentHunkChanges = ""
+            current_hunk = line + "\n"
+            current_hunk_changes = ""
             continue
 
         if line.startswith("diff --git ") or line.startswith("+++ b/") or line.startswith("index "):
@@ -131,26 +131,26 @@ def anyDiffersInChat():
 
         if line.startswith("--- a/"):
             # Beginning of the diff of another file
-            processHunk(currentFile, currentHunk, currentHunkChanges)
+            process_hunk(current_file, current_hunk, current_hunk_changes)
 
-            currentFile = line[len("--- a/"):].replace("src/main/java/", "")
-            if currentFile.endswith(".java"):
-                currentFile = currentFile[:-len(".java")].replace("/", ".")
+            current_file = line[len("--- a/"):].replace("src/main/java/", "")
+            if current_file.endswith(".java"):
+                current_file = current_file[:-len(".java")].replace("/", ".")
 
-            currentHunk = None
-            currentHunkChanges = None
+            current_hunk = None
+            current_hunk_changes = None
             continue
 
-        if currentHunk is None:
+        if current_hunk is None:
             continue
 
         # Add to current hunk/hunk changes
-        currentHunk += line + "\n"
+        current_hunk += line + "\n"
         if line.startswith("+") or line.startswith("-"):
-            currentHunkChanges += line + "\n"
+            current_hunk_changes += line + "\n"
 
 
-def printMatches(writeToPath: str | None = None):
+def print_matches(write_to_path: str | None = None):
     output = ""
     for f in filters:
         if len(f.results) == 0:
@@ -164,19 +164,19 @@ def printMatches(writeToPath: str | None = None):
                 output += blob + "\n"
             output += "\n"
 
-    if writeToPath is not None:
-        os.chdir(currentDir)
-        parent = os.path.dirname(writeToPath)
+    if write_to_path is not None:
+        os.chdir(current_dir)
+        parent = os.path.dirname(write_to_path)
         if len(parent) != 0 and not os.path.exists(parent):
             os.makedirs(parent)
 
-        with open(writeToPath, 'w') as file:
+        with open(write_to_path, 'w') as file:
             file.write(output)
             file.close()
-        print("Dumped to file " + writeToPath)
+        print("Dumped to file " + write_to_path)
     else:
         print(output)
 
 
-anyDiffersInChat()
-printMatches(toFile)
+any_differs_in_chat()
+print_matches(to_file)

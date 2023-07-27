@@ -11,7 +11,7 @@ Various automated utility tools for Via updates.
 Run `git submodule update --init`
 
 ## Usage
-- `py version-checker.py` is the main file, subsequently calling the other scripts. It searches for new snapshots and releases. Once one is found, the server will be downloaded its mappings will be generated.
+- `py version_checker.py` is the main file, subsequently calling the other scripts. It searches for new snapshots and releases. Once one is found, the server will be downloaded its mappings will be generated.
   - `--generateSources` or `-v` to generate sources using VanillaGradle (using the sources script you'll have to hand edit)
   - `--generateSourcesEnigma` to also generate mapped sources for client and server - I don't actually use this anymore and only keep it as a fallback; [VanillaGradle is where it's at](https://github.com/SpongePowered/VanillaGradle)
   - `--ver <version>` to generate mappings/sources for a specific, older version.
@@ -27,7 +27,7 @@ Run `git submodule update --init`
   - `--decompile` or `-d` to decompile the version
   - `--push` or `-p` to commit and push the changes to the project's remote
   - Example: `py sources.py --ver 1.18.2 -d -p`
-- `diff-checker.py` is basically Burger lite but operating on mapped code for things outside dumpable registries
+- `diff_checker.py` is basically Burger lite but operating on mapped code for things outside dumpable registries
   - `--output <path>` (required) output file path for the generated (kind of) patch file
 - See https://github.com/ViaVersion/Mappings on how to use the mappings generator
 
