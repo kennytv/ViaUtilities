@@ -16,6 +16,8 @@ dependency-reduced-pom.xml
 hs_err_pid*
 venv/
 
+.DS_Store
+
 __pycache__/
 *.py[cod]
 *$py.class

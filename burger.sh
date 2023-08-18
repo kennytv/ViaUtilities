@@ -13,6 +13,10 @@ fi
 # Normal execution
 burger_branch=1.19-dev
 
+if [ ! -d versions ]
+then mkdir versions
+fi
+
 if [ ! -d Burger ]
 then mkdir Burger
 fi
