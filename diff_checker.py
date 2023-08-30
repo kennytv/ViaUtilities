@@ -78,8 +78,7 @@ if args.hasArg("output"):
     to_file = args.getArg("output")
 
 current_dir: str = os.getcwd()
-os.chdir(os.path.expanduser("~\\IdeaProjects\\MCSources\\"))  # HMMMMMMMMMMM
-
+os.chdir(os.path.expanduser(os.path.join("~", "IdeaProjects", "MCSources")))  # HMMMMMMMMMMM
 
 def has_contains_match(blob: str, f: Filter) -> bool:
     """
@@ -108,7 +107,7 @@ def process_hunk(file: str, hunk: str, addition_blob: str):
 
 
 def any_differs_in_chat():
-    pp: Popen[bytes] = Popen("git show", stdout=PIPE, stderr=PIPE)
+    pp: Popen[bytes] = Popen(["git", "show"], stdout=PIPE, stderr=PIPE)
     stdout, stderr = pp.communicate()
     diff_lines: list[str] = stdout.decode("utf-8").splitlines()
 

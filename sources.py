@@ -2,6 +2,7 @@ import glob
 import zipfile
 import shutil
 import os
+import platform
 from os.path import expanduser
 from lib import args
 
@@ -10,17 +11,20 @@ decompile: bool = args.hasArg("decompile", 'd')
 version: str = args.getArg("ver")
 push: bool = args.hasArg("push", 'p')
 # Hmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
-sourcesDir: str = expanduser("~\\IdeaProjects\\MCSources\\")
-sourcesJavaDir: str = sourcesDir + "src\\main\\java\\"
+sourcesDir: str = expanduser(os.path.join("~", "IdeaProjects", "MCSources"))
+sourcesJavaDir: str = os.path.join(sourcesDir, "src", "main", "java")
 
 if not fromCache:
-    shutil.copyfile("versions\\" + version + ".json", sourcesDir + "version.json")
+    shutil.copyfile(os.path.join("versions", version + ".json"), os.path.join(sourcesDir, "version.json"))
 
 os.chdir(sourcesDir)
 
 if decompile:
     print("Decompiling...", flush=True)
-    os.system("gradlew decompile")
+    if platform.system() == "Windows":
+        os.system("gradlew decompile")
+    else:
+        os.system("./gradlew decompile")
 
 if os.path.isdir(sourcesJavaDir):
     print("Deleting old sources...", flush=True)
@@ -28,13 +32,17 @@ if os.path.isdir(sourcesJavaDir):
 
 print("Unzipping and moving sources...")
 os.mkdir(sourcesJavaDir)
-for jar in glob.glob(expanduser(
-        f"~\\.gradle\\caches\\VanillaGradle\\v2\\jars\\net\\minecraft\\joined\\{version}\\joined-{version}-sources.jar")):
+
+jarPath = expanduser(os.path.join(
+    "~", ".gradle", "caches", "VanillaGradle", "v2", "jars", "net", "minecraft", "joined", version,
+    f"joined-{version}-sources.jar"
+))
+for jar in glob.glob(jarPath):
     with zipfile.ZipFile(jar) as z:
         z.extractall(path=sourcesJavaDir)
     break
 
-with open(sourcesDir + "\\last.txt", 'w') as file:
+with open(os.path.join(sourcesDir, "last.txt"), 'w') as file:
     file.write(version)
 
 if push:

@@ -6,7 +6,7 @@ if [ -n "$3" ] && [ "$3" == "vitrine" ]
 then
 	echo "Generating HTML file"
 	cd Burger
-	cat "out/$1_$2.json" | py vitrine/vitrine_main.py -v -o "vitrine/$1_$2.html"
+	cat "out/$1_$2.json" | python3 vitrine/vitrine_main.py -v -o "vitrine/$1_$2.html"
 	exit 0
 fi
 
@@ -62,7 +62,7 @@ fi
 
 for v in $1 $2; do
 	echo "Dumping information of $v"	
-	py burger/munch.py -v "../versions/client-$v.jar" -o "out/$v.json"
+	python3 burger/munch.py -v "../versions/client-$v.jar" -o "out/$v.json"
 done
 
 # Exit if only one arg was passed
@@ -71,12 +71,12 @@ then exit 0
 fi
 
 echo "Comparing versions"
-py hamburglar/hamburglar_main.py "out/$1.json" "out/$2.json" -v -o "out/$1_$2.json"
+python3 hamburglar/hamburglar_main.py "out/$1.json" "out/$2.json" -v -o "out/$1_$2.json"
 
 # If a third parameter is passed, the Vitrine file will not be generated
 if [ -z "$3" ]
 then
 	echo "Generating HTML file"
-	cat "out/$1_$2.json" | py vitrine/vitrine_main.py -v -o "vitrine/$1_$2.html"
+	cat "out/$1_$2.json" | python3 vitrine/vitrine_main.py -v -o "vitrine/$1_$2.html"
 fi
 echo "Done!"

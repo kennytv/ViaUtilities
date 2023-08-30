@@ -31,10 +31,16 @@ def save_to_versions_file(release: str, snapshot: str):
 
 def push(message: str):
     repo = Repo("")
-    repo.git.add(update=True)
-    repo.index.commit(message)
-    origin = repo.remote(name='origin')
-    origin.push()
+
+    # Check for changes staged for commit
+    changes = repo.index.diff("HEAD")
+    if changes:
+        repo.git.add(update=True)
+        repo.index.commit(message)
+        origin = repo.remote(name='origin')
+        origin.push()
+    else:
+        print("No changes to commit.")
 
 
 def process_mappings(json_object, old_version: str, version: str):
@@ -68,7 +74,7 @@ def process_mappings(json_object, old_version: str, version: str):
 
     # Run Via mappings gen
     print("\n=== Running mappings generator...\n", flush=True)
-    os.system(".\\prepare-mappings-generator.sh " + version)
+    os.system("." + os.sep + "prepare-mappings-generator.sh " + version)
     os.chdir("Mappings")
     subprocess.call(["java", "-jar", "MappingsGenerator.jar", "server.jar", next_release])
     subprocess.call(
@@ -90,23 +96,26 @@ def process_mappings(json_object, old_version: str, version: str):
     os.chdir("..")
 
     # Run Burger
-    vitrine_file = "Burger\\vitrine\\{0}_{1}.html".format(old_version, version)
+    vitrine_file = os.path.join("Burger", "vitrine", "{0}_{1}.html".format(old_version, version))
     if old_version == version:
         # Only dump the one version
-        if not os.path.isfile("Burger\\out\\" + version + ".json"):
-            os.system(".\\burger.sh " + version)
+        if not os.path.isfile(os.path.join("Burger", "out", version + ".json")):
+            os.system("." + os.sep + "burger.sh " + version)
     elif os.path.isfile(vitrine_file):
         print("Burger/Vitrine file already present!")
     else:
         print("\n=== Generating Burger mapping diff...\n", flush=True)
-        os.system(".\\burger.sh {0} {1}".format(old_version, version))
-        os.system(".\\" + vitrine_file)
+        os.system("." + os.sep + "burger.sh {0} {1}".format(old_version, version))
+        os.system("." + os.sep + vitrine_file)
 
     # Decompile and deobfuscate vanilla jars
     if args.hasArg("generateSources", 'v'):
         print("\n=== Decompiling sources with VanillaGradle...\n", flush=True)
-        os.system("py sources.py --decompile --push --ver " + version)
-        os.system("py diff_checker.py --output diffs/" + version + ".patch")
+        os.system("python3 sources.py --decompile --push --ver " + version)
+
+        if not os.path.exists('diffs'):
+            os.makedirs('diffs')
+        os.system("python3 diff_checker.py --output diffs/" + version + ".patch")
 
     # Keep this as a backup just in case
     if args.hasArg("generateSourcesEnigma"):
@@ -118,11 +127,11 @@ def process_mappings(json_object, old_version: str, version: str):
 
         print("\nGenerating client sources...\n", flush=True)
         wget.download(client_mappings_url, "sources/client-" + version + ".txt")
-        os.system(".\\sources-enigma.sh client " + version)
+        os.system("." + os.sep + "sources-enigma.sh client " + version)
 
         # print("\nGenerating server sources...\n", flush=True)
         # wget.download(server_mappings_url, "sources/server-" + version + ".txt")
-        # os.system(".\\sources-enigma.sh server " + version)
+        # os.system("." + os.sep + "sources-enigma.sh server " + version)
 
     print("\nFinished", version, "processing!", flush=True)
 
