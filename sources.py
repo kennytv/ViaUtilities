@@ -39,7 +39,11 @@ jarPath = expanduser(os.path.join(
 ))
 for jar in glob.glob(jarPath):
     with zipfile.ZipFile(jar) as z:
-        z.extractall(path=sourcesJavaDir)
+        # z.extractall(path=sourcesJavaDir)
+        for file_info in z.infolist():
+            # Extract files except those in 'assets' and 'data' directories
+            if not file_info.filename.startswith(('assets/', 'data/')):
+                z.extract(file_info, path=sourcesJavaDir)
     break
 
 with open(os.path.join(sourcesDir, "last.txt"), 'w') as file:
