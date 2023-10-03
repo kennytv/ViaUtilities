@@ -8,5 +8,5 @@ cd Mappings
 git checkout main
 git fetch && git reset --hard origin/main
 
-mvn clean package
-mv target/MappingsGenerator-*.jar ./MappingsGenerator.jar
+./gradlew build
+mv build/libs/MappingsGenerator-*.jar ./MappingsGenerator.jar
