@@ -22,6 +22,7 @@ class Filter:
         self.results = {}
 
 
+# A lot of these aren't valid anymore
 buf_methods: list[str] = [
     "readWithCodec", "writeWithCodec", "readJsonWithCodec", "writeJsonWithCodec", "writeId", "readById",
     "readCollection", "writeCollection", "readList", "readIntIdList", "writeIntIdList", "readMap", "writeMap",
@@ -42,7 +43,8 @@ buf_methods: list[str] = [
     "readUnsignedIntLE", "readLong", "readLongLE", "readChar", "readFloat", "readDouble", "readBytes",
     "readSlice", "readRetainedSlice", "readCharSequence", "writeBoolean", "writeByte", "writeShort",
     "writeShortLE", "writeMedium", "writeMediumLE", "writeInt", "writeIntLE", "writeLong", "writeLongLE",
-    "writeChar", "writeFloat", "writeDouble", "writeBytes", "writeZero", "writeCharSequence"
+    "writeChar", "writeFloat", "writeDouble", "writeBytes", "writeZero", "writeCharSequence",
+    'StreamCodec', 'ByteBufCodecs'
 ]
 for i in range(len(buf_methods)):
     buf_methods[i] = "." + buf_methods[i] + "("
@@ -50,6 +52,7 @@ for i in range(len(buf_methods)):
 filters: list[Filter] = [
     Filter("Packets", [], buf_methods),
     Filter("Entity type", ["net.minecraft.world.entity.EntityType"], []),
+    Filter("Data components", ["net.minecraft.core.component.DataComponents"], []),
     Filter("Entity data (for metadata)", ["net.minecraft.network.syncher.SynchedEntityData"], ["EntityDataAccessor<"]),
     Filter("Entity pose (for metadata)", ["net.minecraft.world.entity.Pose"], []),
     Filter("Argument types (serializers)", ["net.minecraft.commands.synchronization.ArgumentTypeInfos"], []),
