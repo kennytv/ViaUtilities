@@ -95,19 +95,6 @@ def process_mappings(json_object, old_version: str, version: str):
 
     os.chdir("..")
 
-    # Run Burger
-    vitrine_file = os.path.join("Burger", "vitrine", "{0}_{1}.html".format(old_version, version))
-    if old_version == version:
-        # Only dump the one version
-        if not os.path.isfile(os.path.join("Burger", "out", version + ".json")):
-            os.system("." + os.sep + "burger.sh " + version)
-    elif os.path.isfile(vitrine_file):
-        print("Burger/Vitrine file already present!")
-    else:
-        print("\n=== Generating Burger mapping diff...\n", flush=True)
-        os.system("." + os.sep + "burger.sh {0} {1}".format(old_version, version))
-        os.system("." + os.sep + vitrine_file)
-
     # Decompile and deobfuscate vanilla jars
     if args.hasArg("generateSources", 'v'):
         print("\n=== Decompiling sources with VanillaGradle...\n", flush=True)
