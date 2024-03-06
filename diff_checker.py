@@ -43,17 +43,17 @@ buf_methods: list[str] = [
     "readUnsignedIntLE", "readLong", "readLongLE", "readChar", "readFloat", "readDouble", "readBytes",
     "readSlice", "readRetainedSlice", "readCharSequence", "writeBoolean", "writeByte", "writeShort",
     "writeShortLE", "writeMedium", "writeMediumLE", "writeInt", "writeIntLE", "writeLong", "writeLongLE",
-    "writeChar", "writeFloat", "writeDouble", "writeBytes", "writeZero", "writeCharSequence",
-    'StreamCodec', 'ByteBufCodecs'
+    "writeChar", "writeFloat", "writeDouble", "writeBytes", "writeZero", "writeCharSequence"
 ]
 for i in range(len(buf_methods)):
     buf_methods[i] = "." + buf_methods[i] + "("
 
 filters: list[Filter] = [
     Filter("Packets", [], buf_methods),
+    Filter("Codecs", ['net.minecraft.network.codec.ByteBufCodecs'], ['StreamCodec', 'ByteBufCodecs', 'STREAM_CODEC']),
     Filter("Entity type", ["net.minecraft.world.entity.EntityType"], []),
     Filter("Data components", ["net.minecraft.core.component.DataComponents"], []),
-    Filter("Entity data (for metadata)", ["net.minecraft.network.syncher.SynchedEntityData"], ["EntityDataAccessor<"]),
+    Filter("Entity data (for metadata)", ["net.minecraft.network.syncher.SynchedEntityData"], ["EntityDataAccessor<", 'EntityDataSerializer<']),
     Filter("Entity pose (for metadata)", ["net.minecraft.world.entity.Pose"], []),
     Filter("Argument types (serializers)", ["net.minecraft.commands.synchronization.ArgumentTypeInfos"], []),
     Filter("Recipe types (serializers)", ["net.minecraft.world.item.crafting.RecipeSerializer"], []),
