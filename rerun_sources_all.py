@@ -28,7 +28,7 @@ def has_mappings(version: str):
 # Get all main-line versions with mappings and sort them by release time
 versions = []
 include_snapshots = True
-start_at = None  # Manual override, set to None to actually run all
+start_at = "23w41a"  # Manual override, set to None to actually run all
 
 for entry in get_json_from_url(MANIFEST_URL)["versions"]:
     version_string: str = entry["id"]
@@ -53,4 +53,4 @@ for version in versions:
     with open("versions/" + version_string + ".json", 'w') as version_file:
         json.dump(json_object, version_file)
 
-    os.system("python sources.py --decompile --push --ver " + version_string)
+    os.system("python3 sources.py --decompile --push --ver " + version_string)
