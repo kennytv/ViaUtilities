@@ -35,4 +35,4 @@ versions/
 versions.txt
 sources.py
 
-!enigma-cli.jar
+!old/enigma-cli.jar

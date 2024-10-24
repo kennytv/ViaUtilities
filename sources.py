@@ -22,9 +22,9 @@ os.chdir(sourcesDir)
 if decompile:
     print("Decompiling...", flush=True)
     if platform.system() == "Windows":
-        os.system("gradlew decompile")
+        os.system("gradlew decompile --stacktrace")
     else:
-        os.system("./gradlew decompile")
+        os.system("./gradlew decompile --stacktrace")
 
 if os.path.isdir(sourcesJavaDir):
     print("Deleting old sources...", flush=True)
