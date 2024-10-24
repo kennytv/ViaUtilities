@@ -1,5 +1,5 @@
 # ViaUtilities
-Various automated utility tools for Via updates.
+Various automated utility tools for Via updates. Some data may be exclusive to the gh-pages branch.
 
 ## Dependencies
 * At least Java 17
