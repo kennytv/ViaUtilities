@@ -233,7 +233,7 @@ def main(file_name: str, last_content: str) -> str:
         with open(f'docs/{file_name}.md', 'w') as f:
             f.write(report)
     else:
-        print('Same content as last.')
+        print('Same content as last.', flush=True)
     return report
 
 
