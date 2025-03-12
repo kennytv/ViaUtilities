@@ -16,3 +16,4 @@ Available entity data pages:
 - [1.21](entitydata/1.21.md)
 - [1.21.2](entitydata/1.21.2.md)
 - [1.21.4](entitydata/1.21.4.md)
+- [1.21.5](entitydata/1.21.5.md)
