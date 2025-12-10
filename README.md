@@ -13,7 +13,7 @@ Run `git submodule update --init`
 ## Usage
 - `py version_checker.py` is the main file, subsequently calling the other scripts. It searches for new snapshots and releases. Once one is found, the server will be downloaded its mappings will be generated.
   - `--generateSources` or `-v` to generate sources using VanillaGradle (using the sources script you'll have to hand edit)
-  - `--generateSourcesEnigma` to also generate mapped sources for client and server - I don't actually use this anymore and only keep it as a fallback; [VanillaGradle is where it's at](https://github.com/SpongePowered/VanillaGradle)
+  - `--generateSourcesEnigma` to also generate mapped sources for client and server - I don't actually use this anymore and only keep it as a fallback; [VanillaGradle is where it's at](https://github.com/SpongePowered/VanillaGradle) (https://github.com/PaperMC/mache is even better)
   - `--ver <version>` to generate mappings/sources for a specific, older version.
   - `--localVersionFile` or `-l` to use a version manifest from the version directory instead of downloading it (also need `--oldVer <old version>`)
 - `./sources-enigma.sh <client/server> <version>` to generate client and server sources with Mojang mappings.
