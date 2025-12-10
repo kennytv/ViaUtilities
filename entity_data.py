@@ -96,9 +96,9 @@ class MinecraftEntityAnalyzer:
 
         # To find fields like: EntityDataAccessor<Boolean> DATA_CUSTOM_NAME_VISIBLE = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.BOOLEAN);
         self.data_pattern = re.compile(
-            r'EntityDataAccessor<((?:[^<>]+|<[^<>]+>)*)>\s+([A-Z_\d]+)\s*=\s*'
-            r'SynchedEntityData\.defineId\(\s*([^)]+)\.class\s*,\s*EntityDataSerializers\.([^)]+)\s*\)',
-            re.DOTALL  # Ignores line breaks
+            r'EntityDataAccessor<((?:[^<>]+|<(?:[^<>]+|<(?:[^<>]+|<[^<>]+>)*>)*>)*)>\s+([A-Z_\d]+)\s*=\s*'
+            r'SynchedEntityData\.defineId\s*\(\s*([^,]+?)\s*\.class\s*,\s*EntityDataSerializers\.([^)]+?)\s*\)',
+            re.DOTALL # Ignores line breaks
         )
 
         # Make sure we handle nested classes, like Display subtypes
@@ -233,7 +233,7 @@ def main(file_name: str, last_content: str) -> str:
         with open(f'docs/{file_name}.md', 'w') as f:
             f.write(report)
     else:
-        print('Same content as last.')
+        print('Same content as last.', flush=True)
     return report
 
 
