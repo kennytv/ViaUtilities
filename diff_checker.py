@@ -1,4 +1,4 @@
-from subprocess import Popen, PIPE
+from subprocess import run
 import os
 
 from lib import args
@@ -53,7 +53,9 @@ filters: list[Filter] = [
     Filter("Codecs", ['net.minecraft.network.codec.ByteBufCodecs'], ['StreamCodec', 'ByteBufCodecs', 'STREAM_CODEC']),
     Filter("Entity type", ["net.minecraft.world.entity.EntityType"], []),
     Filter("Data components", ["net.minecraft.core.component.DataComponents"], []),
-    Filter("Entity data (for metadata)", ["net.minecraft.network.syncher.SynchedEntityData"], ["EntityDataAccessor<", 'EntityDataSerializer<']),
+    Filter("Entity data (for metadata)",
+           ["net.minecraft.network.syncher.SynchedEntityData", "net.minecraft.network.syncher.EntityDataSerializers"],
+           ["EntityDataAccessor<", 'EntityDataSerializer<']),
     Filter("Entity pose (for metadata)", ["net.minecraft.world.entity.Pose"], []),
     Filter("Argument types (serializers)", ["net.minecraft.commands.synchronization.ArgumentTypeInfos"], []),
     Filter("Recipe types (serializers)", ["net.minecraft.world.item.crafting.RecipeSerializer"], []),
@@ -63,8 +65,9 @@ filters: list[Filter] = [
     Filter("Map colors",
            ["net.minecraft.world.level.material.MaterialColor", "net.minecraft.world.level.material.MapColor"], []),
     Filter("Biomes (for backwards mappings)", ["net.minecraft.world.level.biome.Biomes"], []),
-    Filter("RegistrySynchronization (NETWORKABLE_REGISTRIES for registry data)",
-           ["net.minecraft.core.RegistrySynchronization"], []),
+    Filter("RegistrySynchronization (NETWORKABLE_REGISTRIES/SYNCHRONIZED_REGISTRIES for registry data)",
+           ["net.minecraft.core.RegistrySynchronization", "net.minecraft.resources.RegistryDataLoader"],
+           ["SYNCHRONIZED_REGISTRIES"]),
     Filter("Registry data fields", [],
            ["Codec<DimensionType> DIRECT_CODEC =", "MapCodec<DimensionType.MonsterSettings> CODEC =",
             "Codec<Biome> NETWORK_CODEC = ", "Codec<BiomeSpecialEffects> CODEC =",
@@ -97,29 +100,53 @@ def has_contains_match(blob: str, f: Filter) -> bool:
     return False
 
 
-def process_hunk(file: str, hunk: str, addition_blob: str):
+def process_hunk(file: str, hunk: str, changed_lines: str):
     if file is None or hunk is None:
         return
 
-    for f in filters:
-        if file in f.filesToDiff or has_contains_match(addition_blob, f):
-            if file not in f.results:
-                f.results[file] = [hunk]
-            elif hunk not in f.results[file]:
-                f.results[file].append(hunk)
+    # Only report each hunk under a single filter, preferring explicit file filters
+    # over content matches so the broad content filters don't swallow them
+    matched = next((f for f in filters if file in f.filesToDiff), None)
+    if matched is None:
+        matched = next((f for f in filters if has_contains_match(changed_lines, f)), None)
+    if matched is None:
+        return
+
+    if file not in matched.results:
+        matched.results[file] = [hunk]
+    elif hunk not in matched.results[file]:
+        matched.results[file].append(hunk)
+
+
+def qualified_file_name(path: str) -> str:
+    path = path.replace("src/main/java/", "")
+    if path.endswith(".java"):
+        path = path[:-len(".java")].replace("/", ".")
+    return path
 
 
 def any_differs_in_chat():
-    pp: Popen[bytes] = Popen(["git", "show"], stdout=PIPE, stderr=PIPE)
-    stdout, stderr = pp.communicate()
-    diff_lines: list[str] = stdout.decode("utf-8").splitlines()
+    # --format= drops the commit message, so stray message lines can't be parsed as diff content
+    result = run(["git", "show", "--format=", "--no-color"], capture_output=True)
+    if result.returncode != 0:
+        raise SystemExit("git show failed: " + result.stderr.decode("utf-8", errors="replace"))
+
+    diff_lines: list[str] = result.stdout.decode("utf-8", errors="replace").splitlines()
 
     current_hunk = None
     current_hunk_changes = None
     current_file = None
 
-    # todo Check if this works on created/deleted files
     for line in diff_lines:
+        if line.startswith("diff --git "):
+            # End of the previous file's hunks
+            process_hunk(current_file, current_hunk, current_hunk_changes)
+
+            current_file = None
+            current_hunk = None
+            current_hunk_changes = None
+            continue
+
         if line.startswith("@@ "):
             # Beginning of a hunk
             process_hunk(current_file, current_hunk, current_hunk_changes)
@@ -128,28 +155,27 @@ def any_differs_in_chat():
             current_hunk_changes = ""
             continue
 
-        if line.startswith("diff --git ") or line.startswith("+++ b/") or line.startswith("index "):
-            continue
-
-        if line.startswith("--- a/"):
-            # Beginning of the diff of another file
+        if line.startswith("--- a/") or line == "--- /dev/null":
+            # Beginning of the diff of another file; created files carry their name on the +++ line
             process_hunk(current_file, current_hunk, current_hunk_changes)
 
-            current_file = line[len("--- a/"):].replace("src/main/java/", "")
-            if current_file.endswith(".java"):
-                current_file = current_file[:-len(".java")].replace("/", ".")
-
+            current_file = None if line == "--- /dev/null" else qualified_file_name(line[len("--- a/"):])
             current_hunk = None
             current_hunk_changes = None
             continue
 
         if current_hunk is None:
+            if current_file is None and line.startswith("+++ b/"):
+                current_file = qualified_file_name(line[len("+++ b/"):])
             continue
 
         # Add to current hunk/hunk changes
         current_hunk += line + "\n"
         if line.startswith("+") or line.startswith("-"):
             current_hunk_changes += line + "\n"
+
+    # Process the final hunk of the diff
+    process_hunk(current_file, current_hunk, current_hunk_changes)
 
 
 def print_matches(write_to_path: str | None = None):
@@ -178,6 +204,12 @@ def print_matches(write_to_path: str | None = None):
         print("Dumped to file " + write_to_path)
     else:
         print(output)
+
+    matched = [f.name for f in filters if len(f.results) != 0]
+    if len(matched) != 0:
+        print("Matched " + str(len(matched)) + " filter(s): " + ", ".join(matched))
+    else:
+        print("Diff parsed successfully, but no filters matched.")
 
 
 any_differs_in_chat()
